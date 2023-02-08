@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include "interface.h"
 // TODO: Implement Chat Server.
 
@@ -63,19 +64,24 @@ int main(int argc, char *argv[])
             if ((n = read(connfd, recvline, MAX_DATA)) > 0)
             {
                 LOG(WARNING) << "Received " << recvline;
-                char command[MAX_DATA];
-                char chatroom_name[MAX_DATA];
+                std::string command = "";
+                std::string chatroom_name = "";
                 int i = 0;
-                while (recvline[i] != '\0' && i < 256)
+                while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
                 {
-                    if (recvline[i] == ' ')
-                    {
-                        memcpy(&command, &recvline, i);
-                        command[i + 1] = '\0';
-                        LOG(WARNING) << "Command: " << command;
-                        break;
-                    }
+                    command += recvline[i];
+                    i += 1;
                 }
+                command += "\0";
+                i += 1;
+                while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+                {
+                    chatroom_name += recvline[i];
+                    i += 1;
+                }
+                chatroom_name += "\0";
+                LOG(WARNING) << "Command: " << command << "; size: " << command.length();
+                LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
             }
             close(connfd);
         }
