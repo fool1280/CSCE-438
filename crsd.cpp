@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 #include "interface.h"
 // TODO: Implement Chat Server.
 
@@ -18,8 +19,7 @@ int main(int argc, char *argv[])
     google::InitGoogleLogging(argv[0]);
     int listenfd, connfd, n;
     struct sockaddr_in servaddr;
-    int servaddr_len = sizeof(servaddr);
-    uint8_t buff[MAX_DATA], recvline[MAX_DATA];
+    char recvline[MAX_DATA];
     int opt = 1;
 
     // Creating socket
@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(PORT);
+    int servaddr_len = sizeof(servaddr);
 
     if (bind(listenfd, (sockaddr *)&servaddr, servaddr_len) < 0)
     {
@@ -49,14 +50,22 @@ int main(int argc, char *argv[])
         LOG(ERROR) << "Server listening error";
     }
     LOG(INFO) << "Starting Server";
+    fd_set readfds;
+
     while (true)
     {
-        connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-        if ((n = recv(connfd, recvline, MAX_DATA, 0)) > 0)
+        FD_ZERO(&readfds);
+        FD_SET(listenfd, &readfds);
+        select(listenfd + 1, &readfds, NULL, NULL, NULL);
+        if (FD_ISSET(listenfd, &readfds))
         {
-            LOG(INFO) << "Receive command" << recvline;
+            connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
+            if ((n = read(connfd, recvline, MAX_DATA)) > 0)
+            {
+                LOG(WARNING) << "Received " << recvline << ", size: " << sizeof(recvline);
+            }
+            close(connfd);
         }
-        close(connfd);
     }
     shutdown(listenfd, SHUT_RDWR);
     return 0;
