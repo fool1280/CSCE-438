@@ -1,5 +1,0 @@
-Log file created at: 2023/02/07 23:21:10
-Running on machine: Anhs-MacBook-Pro.local
-Running duration (h:mm:ss): 0:00:00
-Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
-E20230207 23:21:10.653824 2717795 crc.cpp:98] ERROR: could not connect to server

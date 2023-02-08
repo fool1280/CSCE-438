@@ -1,13 +1,13 @@
 /*****************************************************************
-* FILENAME :        interface.h 
-*
-*    Functions and datastructures for the interface
-*    between users and the client program.
-* 
-*    DO NOT MODIFY THIS FILE.
-*
-* Version: 1.0
-******************************************************************/
+ * FILENAME :        interface.h
+ *
+ *    Functions and datastructures for the interface
+ *    between users and the client program.
+ *
+ *    DO NOT MODIFY THIS FILE.
+ *
+ * Version: 1.0
+ ******************************************************************/
 #ifndef INTERFACE_H_
 #define INTERFACE_H_
 #include <ctype.h>
@@ -29,23 +29,23 @@ enum Status
     FAILURE_UNKNOWN
 };
 
-/* 
+/*
  * Reply structure is designed to be used for displaying the
  * result of the command that has been sent to the server.
  * For example, in the "process_command" function, you should
- * declare a variable of Reply structure and fill it based on 
+ * declare a variable of Reply structure and fill it based on
  * the type of command and the result.
- * 
+ *
  * - CREATE and DELETE command:
  * Reply reply;
  * reply.status = one of values in Status enum;
- * 
+ *
  * - JOIN command:
  * Reply reply;
  * reply.status = one of values in Status enum;
  * reply.num_members = # of members
  * reply.port = port number;
- * 
+ *
  * - LIST command:
  * Reply reply;
  * reply.status = one of values in Status enum;
@@ -58,13 +58,15 @@ struct Reply
 {
     enum Status status;
 
-    union {
+    union
+    {
         // Below structure is only for the "JOIN <chatroom name>" command
-        struct {
+        struct
+        {
             // # of members that have been joined the chatroom
             int num_member;
             // port number to join the chatroom
-            int port;        
+            int port;
         };
 
         // list_room is only for the "LIST" command
@@ -73,18 +75,18 @@ struct Reply
     };
 };
 
-/* 
+/*
  * DO NOT MODIFY THIS FUNCTION
  * This function convert input string to uppercase.
  */
 void touppercase(char *str, int n)
 {
-	int i;
+    int i;
     for (i = 0; str[i]; i++)
         str[i] = toupper((unsigned char)str[i]);
 }
 
-/* 
+/*
  * DO NOT MODIFY THIS FUNCTION
  * This function displays a title, commands that user can use.
  */
@@ -99,66 +101,69 @@ void display_title()
     printf("=====================================\n");
 }
 
-/* 
+/*
  * DO NOT MODIFY THIS FUNCTION
  * This function prompts a user to enter a command.
  */
-void get_command(char* comm, const int size)
+void get_command(char *comm, const int size)
 {
     printf("Command> ");
     fgets(comm, size, stdin);
     comm[strlen(comm) - 1] = '\0';
 }
 
-/* 
+/*
  * DO NOT MODIFY THIS FUNCTION
  * This function prompts a user to enter a command.
  */
-void get_message(char* message, const int size)
+void get_message(char *message, const int size)
 {
     fgets(message, size, stdin);
     message[strlen(message) - 1] = '\0';
 }
 
-
 /*
  * DO NOT MODIFY THIS FUNCTION.
- * You should call this function to display the message from 
+ * You should call this function to display the message from
  * other clients in a currently joined chatroom.
  */
-void display_message(char* message)
+void display_message(char *message)
 {
     printf("> %s", message);
 }
 
-void display_reply(char* comm, const struct Reply reply)
+void display_reply(char *comm, const struct Reply reply)
 {
-	touppercase(comm, strlen(comm) - 1);
-    switch (reply.status) {
-        case SUCCESS:
-            printf("Command completed successfully\n");
-            if (strncmp(comm, "JOIN", 4) == 0) {
-                printf("#Members: %d\n", reply.num_member);
-				printf("#Port: %d\n", reply.port);
-			} else if (strncmp(comm, "LIST", 4) == 0) {
-				printf("List: %s\n", reply.list_room);
-			}
-            break;
-        case FAILURE_ALREADY_EXISTS:
-            printf("Input chatroom name already exists, command failed\n");
-            break;
-        case FAILURE_NOT_EXISTS:
-            printf("Input chatroom name does not exists, command failed\n");
-            break;
-        case FAILURE_INVALID:
-            printf("Command failed with invalid command\n");
-            break;
-        case FAILURE_UNKNOWN:
-            printf("Command failed with unknown reason\n");
-            break;
-        default:
-            printf("Invalid status\n");
-            break;
+    touppercase(comm, strlen(comm) - 1);
+    switch (reply.status)
+    {
+    case SUCCESS:
+        printf("Command completed successfully\n");
+        if (strncmp(comm, "JOIN", 4) == 0)
+        {
+            printf("#Members: %d\n", reply.num_member);
+            printf("#Port: %d\n", reply.port);
+        }
+        else if (strncmp(comm, "LIST", 4) == 0)
+        {
+            printf("List: %s\n", reply.list_room);
+        }
+        break;
+    case FAILURE_ALREADY_EXISTS:
+        printf("Input chatroom name already exists, command failed\n");
+        break;
+    case FAILURE_NOT_EXISTS:
+        printf("Input chatroom name does not exists, command failed\n");
+        break;
+    case FAILURE_INVALID:
+        printf("Command failed with invalid command\n");
+        break;
+    case FAILURE_UNKNOWN:
+        printf("Command failed with unknown reason\n");
+        break;
+    default:
+        printf("Invalid status\n");
+        break;
     }
 }
 
