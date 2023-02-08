@@ -1,0 +1,4 @@
+/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles/client.dir
+/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles/server.dir
+/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles/edit_cache.dir
+/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles/rebuild_cache.dir
