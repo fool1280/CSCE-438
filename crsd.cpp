@@ -9,11 +9,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream>
 #include "interface.h"
 // TODO: Implement Chat Server.
 
 #define PORT 8080
+
 int main(int argc, char *argv[])
 {
     google::InitGoogleLogging(argv[0]);
@@ -62,7 +62,20 @@ int main(int argc, char *argv[])
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
             if ((n = read(connfd, recvline, MAX_DATA)) > 0)
             {
-                LOG(WARNING) << "Received " << recvline << ", size: " << sizeof(recvline);
+                LOG(WARNING) << "Received " << recvline;
+                char command[MAX_DATA];
+                char chatroom_name[MAX_DATA];
+                int i = 0;
+                while (recvline[i] != '\0' && i < 256)
+                {
+                    if (recvline[i] == ' ')
+                    {
+                        memcpy(&command, &recvline, i);
+                        command[i + 1] = '\0';
+                        LOG(WARNING) << "Command: " << command;
+                        break;
+                    }
+                }
             }
             close(connfd);
         }
