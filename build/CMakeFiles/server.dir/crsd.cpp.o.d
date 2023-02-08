@@ -250,4 +250,5 @@ CMakeFiles/server.dir/crsd.cpp.o: \
   /usr/local/include/gflags/gflags_declare.h \
   /usr/local/include/gflags/gflags_gflags.h \
   /usr/local/include/glog/log_severity.h \
-  /usr/local/include/glog/vlog_is_on.h
+  /usr/local/include/glog/vlog_is_on.h \
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/usr/include/c++/v1/iostream

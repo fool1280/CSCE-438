@@ -76,13 +76,19 @@ int connect_to(const char *host, const int port)
 	int sockfd;
 
 	// Creating socket
+	// AF_INET = Address Family - Internet
+	// SOCK_STREAM = stream socket (other are datagram, which is packet == a chunk of data)
+	// 0 select TCP protocol
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		LOG(ERROR) << "ERROR: could not open socket";
 		exit(EXIT_FAILURE);
 	}
 
+	// Specify internet address and port
 	server_addr.sin_family = AF_INET;
+	// host to network, short
+	// convert big endian or little endian to the network byte order
 	server_addr.sin_port = htons(port);
 
 	// convert host address from string to decimal format and store in the server_addr struct
