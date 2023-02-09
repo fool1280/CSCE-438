@@ -81,7 +81,7 @@ int new_socket(int port)
     return listenfd;
 }
 
-void cleanup(std::map<std::string, room> &database)
+void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLIENTS])
 {
     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
     {
@@ -91,82 +91,89 @@ void cleanup(std::map<std::string, room> &database)
             close(i);
         }
     }
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (client_socket[i] > 0)
+        {
+            close(client_socket[i]);
+        }
+    }
 }
 
 void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
-    if ((n = read(connfd, recvline, MAX_DATA)) > 0)
+    // if ((n = read(connfd, recvline, MAX_DATA)) > 0)
+    // {
+    LOG(WARNING) << "Received " << recvline;
+    std::string command = "";
+    std::string chatroom_name = "";
+    int i = 0;
+    while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
     {
-        LOG(WARNING) << "Received " << recvline;
-        std::string command = "";
-        std::string chatroom_name = "";
-        int i = 0;
+        command += recvline[i];
+        i += 1;
+    }
+    LOG(WARNING) << "Command: " << command << "; size: " << command.length();
+    Reply reply;
+    if (command == "CREATE")
+    {
+        i += 1;
         while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
         {
-            command += recvline[i];
+            chatroom_name += recvline[i];
             i += 1;
         }
-        LOG(WARNING) << "Command: " << command << "; size: " << command.length();
-        Reply reply;
-        if (command == "CREATE")
-        {
-            i += 1;
-            while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
-            {
-                chatroom_name += recvline[i];
-                i += 1;
-            }
-            LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
-            int found = database.count(chatroom_name);
+        LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+        int found = database.count(chatroom_name);
 
-            if (chatroom_name.length() == 0)
-            {
-                reply.status = FAILURE_INVALID;
-            }
-            else if (found == 0)
-            {
-                int master_socket = new_socket(nextPort);
-                database[chatroom_name] = (room){nextPort, master_socket, master_socket};
-                reply.status = SUCCESS;
-                nextPort += 1;
-            }
-            else if (found > 0)
-            {
-                reply.status = FAILURE_ALREADY_EXISTS;
-            }
-        }
-        else if (command == "JOIN")
-        {
-        }
-        else if (command == "DELETE")
-        {
-        }
-        else if (command == "LIST")
-        {
-            std::string res = "";
-            for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
-            {
-                std::string k = iter->first;
-                if (std::next(iter, 1) != database.end())
-                {
-                    res = res + k + ", ";
-                }
-                else
-                {
-                    res = res + k;
-                }
-            }
-            LOG(WARNING) << "List room: " << res;
-            reply.status = SUCCESS;
-            strcpy(reply.list_room, res.c_str());
-            debug(database);
-        }
-        else
+        if (chatroom_name.length() == 0)
         {
             reply.status = FAILURE_INVALID;
         }
-        send(connfd, &reply, sizeof(reply), 0);
+        else if (found == 0)
+        {
+            int master_socket = new_socket(nextPort);
+            database[chatroom_name] = (room){nextPort, master_socket, master_socket};
+            reply.status = SUCCESS;
+            nextPort += 1;
+        }
+        else if (found > 0)
+        {
+            reply.status = FAILURE_ALREADY_EXISTS;
+        }
     }
+    else if (command == "JOIN")
+    {
+    }
+    else if (command == "DELETE")
+    {
+    }
+    else if (command == "LIST")
+    {
+        std::string res = "";
+        for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+        {
+            std::string k = iter->first;
+            if (std::next(iter, 1) != database.end())
+            {
+                res = res + k + ", ";
+            }
+            else
+            {
+                res = res + k;
+            }
+        }
+        LOG(WARNING) << "List room: " << res;
+        reply.status = SUCCESS;
+        strcpy(reply.list_room, res.c_str());
+        debug(database);
+    }
+    else
+    {
+        reply.status = FAILURE_INVALID;
+    }
+    send(connfd, &reply, sizeof(reply), 0);
+    // }
 }
 
 int main(int argc, char *argv[])
@@ -184,7 +191,7 @@ int main(int argc, char *argv[])
     int client_socket[MAX_CLIENTS];
     for (int i = 0; i < MAX_CLIENTS; i++)
     {
-        client_socket[i] = 0;
+        client_socket[i] = -1;
     }
 
     // Creating socket
@@ -217,6 +224,7 @@ int main(int argc, char *argv[])
     }
     LOG(INFO) << "Starting Server";
     fd_set readfds;
+    int temp;
 
     while (true)
     {
@@ -234,12 +242,16 @@ int main(int argc, char *argv[])
             if (sd > max_sd)
                 max_sd = sd;
         }
-        select(max_sd + 1, &readfds, NULL, NULL, NULL);
+        temp = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            process_command(n, connfd, recvline, database, nextPort);
+            n = read(connfd, &recvline, MAX_DATA);
+            if (n > 0)
+            {
+                process_command(n, connfd, recvline, database, nextPort);
+            }
             // add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
@@ -259,12 +271,12 @@ int main(int argc, char *argv[])
             if (FD_ISSET(sd, &readfds))
             {
                 // Check if it was for closing, and also read theincoming message
-                if ((n = read(sd, recvline, MAX_DATA)) == 0)
+                if (read(sd, &recvline, MAX_DATA) <= 0)
                 {
                     // Close the socket and mark as 0 in list for reuse
                     LOG(WARNING) << "Close socket: " << sd;
                     close(sd);
-                    client_socket[i] = 0;
+                    client_socket[i] = -1;
                 }
                 // Echo back the message that came in
                 else
@@ -276,6 +288,6 @@ int main(int argc, char *argv[])
     }
     LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
-    cleanup(database);
+    cleanup(database, client_socket);
     return 0;
 }

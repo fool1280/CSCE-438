@@ -73,15 +73,15 @@ CMakeFiles/client.dir/crc.cpp.o: CMakeFiles/client.dir/flags.make
 CMakeFiles/client.dir/crc.cpp.o: /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp
 CMakeFiles/client.dir/crc.cpp.o: CMakeFiles/client.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/client.dir/crc.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/client.dir/crc.cpp.o -MF CMakeFiles/client.dir/crc.cpp.o.d -o CMakeFiles/client.dir/crc.cpp.o -c /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/client.dir/crc.cpp.o -MF CMakeFiles/client.dir/crc.cpp.o.d -o CMakeFiles/client.dir/crc.cpp.o -c /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp
 
 CMakeFiles/client.dir/crc.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/client.dir/crc.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp > CMakeFiles/client.dir/crc.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp > CMakeFiles/client.dir/crc.cpp.i
 
 CMakeFiles/client.dir/crc.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/client.dir/crc.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp -o CMakeFiles/client.dir/crc.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/anhnguyen/Data/CSCE438/MP_1/crc.cpp -o CMakeFiles/client.dir/crc.cpp.s
 
 # Object files for target client
 client_OBJECTS = \

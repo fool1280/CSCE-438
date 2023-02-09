@@ -73,15 +73,15 @@ CMakeFiles/server.dir/crsd.cpp.o: CMakeFiles/server.dir/flags.make
 CMakeFiles/server.dir/crsd.cpp.o: /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp
 CMakeFiles/server.dir/crsd.cpp.o: CMakeFiles/server.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/anhnguyen/Data/CSCE438/MP_1/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/server.dir/crsd.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/server.dir/crsd.cpp.o -MF CMakeFiles/server.dir/crsd.cpp.o.d -o CMakeFiles/server.dir/crsd.cpp.o -c /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/server.dir/crsd.cpp.o -MF CMakeFiles/server.dir/crsd.cpp.o.d -o CMakeFiles/server.dir/crsd.cpp.o -c /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp
 
 CMakeFiles/server.dir/crsd.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/server.dir/crsd.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp > CMakeFiles/server.dir/crsd.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp > CMakeFiles/server.dir/crsd.cpp.i
 
 CMakeFiles/server.dir/crsd.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/server.dir/crsd.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp -o CMakeFiles/server.dir/crsd.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/anhnguyen/Data/CSCE438/MP_1/crsd.cpp -o CMakeFiles/server.dir/crsd.cpp.s
 
 # Object files for target server
 server_OBJECTS = \
