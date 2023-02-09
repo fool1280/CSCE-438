@@ -14,10 +14,10 @@
 #include "interface.h"
 #include <map>
 #include <vector>
+#include <set>
 // TODO: Implement Chat Server.
 
 #define PORT 8080
-#define MAX_CLIENTS 30
 
 struct room
 {
@@ -81,7 +81,7 @@ int new_socket(int port)
     return listenfd;
 }
 
-void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLIENTS])
+void cleanup(std::map<std::string, room> &database, std::set<int> &client_socket)
 {
     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
     {
@@ -91,89 +91,88 @@ void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLI
             close(i);
         }
     }
-    for (int i = 0; i < MAX_CLIENTS; i++)
+    std::set<int>::iterator itr;
+    for (itr = client_socket.begin();
+         itr != client_socket.end(); itr++)
     {
-        if (client_socket[i] > 0)
-        {
-            close(client_socket[i]);
-        }
+        close(*itr);
     }
 }
 
 void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
-    // if ((n = read(connfd, recvline, MAX_DATA)) > 0)
-    // {
-    LOG(WARNING) << "Received " << recvline;
-    std::string command = "";
-    std::string chatroom_name = "";
-    int i = 0;
-    while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+    if ((n = read(connfd, recvline, MAX_DATA)) > 0)
     {
-        command += recvline[i];
-        i += 1;
-    }
-    LOG(WARNING) << "Command: " << command << "; size: " << command.length();
-    Reply reply;
-    if (command == "CREATE")
-    {
-        i += 1;
+        LOG(WARNING) << "Received " << recvline;
+        std::string command = "";
+        std::string chatroom_name = "";
+        int i = 0;
         while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
         {
-            chatroom_name += recvline[i];
+            command += recvline[i];
             i += 1;
         }
-        LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
-        int found = database.count(chatroom_name);
+        LOG(WARNING) << "Command: " << command << "; size: " << command.length();
+        Reply reply;
+        if (command == "CREATE")
+        {
+            i += 1;
+            while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+            {
+                chatroom_name += recvline[i];
+                i += 1;
+            }
+            LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+            int found = database.count(chatroom_name);
 
-        if (chatroom_name.length() == 0)
+            if (chatroom_name.length() == 0)
+            {
+                reply.status = FAILURE_INVALID;
+            }
+            else if (found == 0)
+            {
+                int master_socket = new_socket(nextPort);
+                database[chatroom_name] = (room){nextPort, master_socket, master_socket};
+                reply.status = SUCCESS;
+                nextPort += 1;
+            }
+            else if (found > 0)
+            {
+                reply.status = FAILURE_ALREADY_EXISTS;
+            }
+        }
+        else if (command == "JOIN")
+        {
+        }
+        else if (command == "DELETE")
+        {
+        }
+        else if (command == "LIST")
+        {
+            std::string res = "";
+            for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+            {
+                std::string k = iter->first;
+                if (std::next(iter, 1) != database.end())
+                {
+                    res = res + k + ", ";
+                }
+                else
+                {
+                    res = res + k;
+                }
+            }
+            LOG(WARNING) << "List room: " << res;
+            reply.status = SUCCESS;
+            strcpy(reply.list_room, res.c_str());
+            debug(database);
+        }
+        else
         {
             reply.status = FAILURE_INVALID;
         }
-        else if (found == 0)
-        {
-            int master_socket = new_socket(nextPort);
-            database[chatroom_name] = (room){nextPort, master_socket, master_socket};
-            reply.status = SUCCESS;
-            nextPort += 1;
-        }
-        else if (found > 0)
-        {
-            reply.status = FAILURE_ALREADY_EXISTS;
-        }
+        send(connfd, &reply, sizeof(reply), 0);
     }
-    else if (command == "JOIN")
-    {
-    }
-    else if (command == "DELETE")
-    {
-    }
-    else if (command == "LIST")
-    {
-        std::string res = "";
-        for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
-        {
-            std::string k = iter->first;
-            if (std::next(iter, 1) != database.end())
-            {
-                res = res + k + ", ";
-            }
-            else
-            {
-                res = res + k;
-            }
-        }
-        LOG(WARNING) << "List room: " << res;
-        reply.status = SUCCESS;
-        strcpy(reply.list_room, res.c_str());
-        debug(database);
-    }
-    else
-    {
-        reply.status = FAILURE_INVALID;
-    }
-    send(connfd, &reply, sizeof(reply), 0);
-    // }
 }
 
 int main(int argc, char *argv[])
@@ -188,11 +187,8 @@ int main(int argc, char *argv[])
 
     // initialize
     int max_sd;
-    int client_socket[MAX_CLIENTS];
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        client_socket[i] = -1;
-    }
+    std::set<int> client_socket;
+    std::set<int>::iterator itr;
 
     // Creating socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -231,13 +227,14 @@ int main(int argc, char *argv[])
         FD_ZERO(&readfds);
         FD_SET(listenfd, &readfds);
         max_sd = listenfd;
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        for (itr = client_socket.begin();
+             itr != client_socket.end(); itr++)
         {
-            // socket descriptor
-            int sd = client_socket[i];
+            int sd = *itr;
             // if valid socket descriptor then add to read list
             if (sd > 0)
                 FD_SET(sd, &readfds);
+            LOG(WARNING) << "Add socket: " << *itr;
             // highest file descriptor number, need it for the select function
             if (sd > max_sd)
                 max_sd = sd;
@@ -247,38 +244,28 @@ int main(int argc, char *argv[])
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            n = read(connfd, &recvline, MAX_DATA);
-            if (n > 0)
-            {
-                process_command(n, connfd, recvline, database, nextPort);
-            }
+            // n = read(connfd, &recvline, MAX_DATA);
+            // if (n > 0)
+            // {
+            process_command(n, connfd, recvline, database, nextPort);
+            // }
             // add new socket to array of sockets
-            for (int i = 0; i < MAX_CLIENTS; i++)
-            {
-                // if position is empty
-                if (client_socket[i] == 0)
-                {
-                    client_socket[i] = connfd;
-                    LOG(WARNING) << "Add new socket: " << connfd;
-                    break;
-                }
-            }
+            client_socket.insert(connfd);
         }
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        for (itr = client_socket.begin();
+             itr != client_socket.end(); itr++)
         {
-            int sd = client_socket[i];
+            int sd = *itr;
 
             if (FD_ISSET(sd, &readfds))
             {
                 // Check if it was for closing, and also read theincoming message
                 if (read(sd, &recvline, MAX_DATA) <= 0)
                 {
-                    // Close the socket and mark as 0 in list for reuse
                     LOG(WARNING) << "Close socket: " << sd;
                     close(sd);
-                    client_socket[i] = -1;
+                    client_socket.erase(itr);
                 }
-                // Echo back the message that came in
                 else
                 {
                     process_command(n, sd, recvline, database, nextPort);
