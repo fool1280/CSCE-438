@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
                 send(connfd, NULL, sizeof(NULL), 0);
             }
         }
-        if (client_socket.size() > 0)
+        else if (client_socket.size() > 0)
         {
             std::vector<int> temp;
             for (it = client_socket.begin(); it != client_socket.end(); it++)
