@@ -102,8 +102,6 @@ void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLI
 
 void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
-    // if ((n = read(connfd, recvline, MAX_DATA)) > 0)
-    // {
     LOG(WARNING) << "Received " << recvline;
     std::string command = "";
     std::string chatroom_name = "";
@@ -173,7 +171,6 @@ void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std
         reply.status = FAILURE_INVALID;
     }
     send(connfd, &reply, sizeof(reply), 0);
-    // }
 }
 
 int main(int argc, char *argv[])
