@@ -11,9 +11,18 @@
 #include <string.h>
 #include <string>
 #include "interface.h"
+#include <map>
+#include <vector>
 // TODO: Implement Chat Server.
 
 #define PORT 8080
+
+struct room
+{
+    int port;
+    int max_socket;
+    std::vector<int> slave_socket;
+};
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +31,8 @@ int main(int argc, char *argv[])
     struct sockaddr_in servaddr;
     char recvline[MAX_DATA];
     int opt = 1;
+    int nextPort = 8081;
+    std::map<std::string, room> database;
 
     // Creating socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -72,16 +83,52 @@ int main(int argc, char *argv[])
                     command += recvline[i];
                     i += 1;
                 }
-                command += "\0";
                 i += 1;
                 while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
                 {
                     chatroom_name += recvline[i];
                     i += 1;
                 }
-                chatroom_name += "\0";
                 LOG(WARNING) << "Command: " << command << "; size: " << command.length();
                 LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+                Reply reply;
+                if (command == "CREATE")
+                {
+                    if (database.count(chatroom_name) == 0)
+                    {
+                        database[chatroom_name] = (room){nextPort, -1};
+                        reply.status = SUCCESS;
+                        nextPort += 1;
+                    }
+                    else
+                    {
+                        reply.status = FAILURE_ALREADY_EXISTS;
+                    }
+                }
+                if (command == "JOIN")
+                {
+                }
+                if (command == "DELETE")
+                {
+                }
+                if (command == "LIST")
+                {
+                }
+                send(connfd, &reply, sizeof(reply), 0);
+                for (auto it : database)
+                {
+                    LOG(WARNING) << "Chatroom name: " << it.first << "; port: " << it.second.port;
+                    if (it.second.slave_socket.size())
+                    {
+                        LOG(WARNING) << "No socket"
+                                     << "\n";
+                    }
+                    for (auto i : it.second.slave_socket)
+                    {
+                        LOG(WARNING) << "socket: " << i;
+                    }
+                }
+                LOG(WARNING) << "\n";
             }
             close(connfd);
         }
