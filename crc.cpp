@@ -88,7 +88,7 @@ int connect_to(const char *host, const int port)
 	// Specify internet address and port
 	server_addr.sin_family = AF_INET;
 	// host to network, short
-	// convert big endian or little endian to the network byte order
+	// convert big endian or little endian to the network byte
 	server_addr.sin_port = htons(port);
 
 	// convert host address from string to decimal format and store in the server_addr struct

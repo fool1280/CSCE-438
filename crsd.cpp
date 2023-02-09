@@ -5,10 +5,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <string>
 #include "interface.h"
 #include <map>
@@ -16,6 +17,7 @@
 // TODO: Implement Chat Server.
 
 #define PORT 8080
+#define MAX_CLIENTS 30
 
 struct room
 {
@@ -177,12 +179,23 @@ int main(int argc, char *argv[])
     int nextPort = 8081;
     std::map<std::string, room> database;
 
+    // initialize
+    int max_sd;
+    int client_socket[MAX_CLIENTS];
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        client_socket[i] = 0;
+    }
+
     // Creating socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         LOG(ERROR) << "Socket creation error";
         exit(EXIT_FAILURE);
     }
+    // int flags = fcntl(listenfd, F_GETFL, 0);
+    // flags |= O_NONBLOCK;
+    // fcntl(listenfd, F_SETFL, O_NONBLOCK);
 
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
     {
@@ -211,14 +224,62 @@ int main(int argc, char *argv[])
     {
         FD_ZERO(&readfds);
         FD_SET(listenfd, &readfds);
-        select(listenfd + 1, &readfds, NULL, NULL, NULL);
+        max_sd = listenfd;
+        for (int i = 0; i < MAX_CLIENTS; i++)
+        {
+            // socket descriptor
+            int sd = client_socket[i];
+            // if valid socket descriptor then add to read list
+            if (sd > 0)
+                FD_SET(sd, &readfds);
+            // highest file descriptor number, need it for the select function
+            if (sd > max_sd)
+                max_sd = sd;
+        }
+        select(max_sd + 1, &readfds, NULL, NULL, NULL);
+
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
+            // int flags = fcntl(connfd, F_GETFL, 0);
+            // flags |= O_NONBLOCK;
+            // fcntl(connfd, F_SETFL, O_NONBLOCK);
             process_command(n, connfd, recvline, database, nextPort);
-            close(connfd);
+            // add new socket to array of sockets
+            for (int i = 0; i < MAX_CLIENTS; i++)
+            {
+                // if position is empty
+                if (client_socket[i] == 0)
+                {
+                    client_socket[i] = connfd;
+                    LOG(WARNING) << "Add new socket: " << connfd;
+                    break;
+                }
+            }
+        }
+        for (int i = 0; i < MAX_CLIENTS; i++)
+        {
+            int sd = client_socket[i];
+
+            if (FD_ISSET(sd, &readfds))
+            {
+                // Check if it was for closing, and also read theincoming message
+                if ((n = read(sd, recvline, MAX_DATA)) == 0)
+                {
+                    // Close the socket and mark as 0 in list for reuse
+                    LOG(WARNING) << "Close socket: " << sd;
+                    close(sd);
+                    client_socket[i] = 0;
+                }
+                // Echo back the message that came in
+                else
+                {
+                    process_command(n, sd, recvline, database, nextPort);
+                }
+            }
         }
     }
+    LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
     cleanup(database);
     return 0;
