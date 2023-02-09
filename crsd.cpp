@@ -193,8 +193,6 @@ int main(int argc, char *argv[])
         LOG(ERROR) << "Socket creation error";
         exit(EXIT_FAILURE);
     }
-    // int flags = fcntl(listenfd, F_GETFL, 0);
-    // flags |= O_NONBLOCK;
     // fcntl(listenfd, F_SETFL, O_NONBLOCK);
 
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
@@ -241,9 +239,6 @@ int main(int argc, char *argv[])
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            // int flags = fcntl(connfd, F_GETFL, 0);
-            // flags |= O_NONBLOCK;
-            // fcntl(connfd, F_SETFL, O_NONBLOCK);
             process_command(n, connfd, recvline, database, nextPort);
             // add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++)
