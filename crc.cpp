@@ -147,7 +147,7 @@ struct Reply process_command(const int sockfd, char *command)
 	char response_string[MAX_DATA];
 	if (recv(sockfd, response_string, MAX_DATA, 0) < 0)
 	{
-		LOG(ERROR) << "ERROR: receive failed";
+		LOG(ERROR) << "ERROR: receive failed" << strerror(errno);
 		exit(EXIT_FAILURE);
 	}
 

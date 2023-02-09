@@ -14,7 +14,7 @@
 #include "interface.h"
 #include <map>
 #include <vector>
-// TODO: Implement Chat Server.
+#include <set>
 
 #define PORT 8080
 #define MAX_CLIENTS 30
@@ -81,24 +81,24 @@ int new_socket(int port)
     return listenfd;
 }
 
-void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLIENTS])
-{
-    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
-    {
-        shutdown(iter->second.master_socket, SHUT_RDWR);
-        for (int i = 0; i < iter->second.slave_socket.size(); i++)
-        {
-            close(i);
-        }
-    }
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (client_socket[i] > 0)
-        {
-            close(client_socket[i]);
-        }
-    }
-}
+// void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLIENTS])
+// {
+//     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+//     {
+//         shutdown(iter->second.master_socket, SHUT_RDWR);
+//         for (int i = 0; i < iter->second.slave_socket.size(); i++)
+//         {
+//             close(i);
+//         }
+//     }
+//     for (int i = 0; i < MAX_CLIENTS; i++)
+//     {
+//         if (client_socket[i] > 0)
+//         {
+//             close(client_socket[i]);
+//         }
+//     }
+// }
 
 void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
@@ -185,11 +185,8 @@ int main(int argc, char *argv[])
 
     // initialize
     int max_sd;
-    int client_socket[MAX_CLIENTS];
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        client_socket[i] = -1;
-    }
+    std::set<int> client_socket;
+    std::set<int>::iterator it;
 
     // Creating socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -197,7 +194,6 @@ int main(int argc, char *argv[])
         LOG(ERROR) << "Socket creation error";
         exit(EXIT_FAILURE);
     }
-    // fcntl(listenfd, F_SETFL, O_NONBLOCK);
 
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
     {
@@ -228,61 +224,79 @@ int main(int argc, char *argv[])
         FD_ZERO(&readfds);
         FD_SET(listenfd, &readfds);
         max_sd = listenfd;
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        if (client_socket.size() > 0)
         {
-            // socket descriptor
-            int sd = client_socket[i];
-            // if valid socket descriptor then add to read list
-            if (sd > 0)
-                FD_SET(sd, &readfds);
-            // highest file descriptor number, need it for the select function
-            if (sd > max_sd)
-                max_sd = sd;
+            for (it = client_socket.begin(); it != client_socket.end(); it++)
+            {
+                // socket descriptor
+                int sd = *it;
+                // if valid socket descriptor then add to read list
+                if (sd > 0)
+                    FD_SET(sd, &readfds);
+                // highest file descriptor number, need it for the select function
+                if (sd > max_sd)
+                    max_sd = sd;
+            }
         }
         temp = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            n = read(connfd, &recvline, MAX_DATA);
-            if (n > 0)
-            {
-                process_command(connfd, recvline, database, nextPort);
-            }
+            // n = read(connfd, &recvline, MAX_DATA);
+            // if (n > 0)
+            // {
+            //     process_command(connfd, recvline, database, nextPort);
+            // }
             // add new socket to array of sockets
-            for (int i = 0; i < MAX_CLIENTS; i++)
+            if (connfd >= 0)
             {
-                // if position is empty
-                if (client_socket[i] == 0)
+                client_socket.insert(connfd);
+                send(connfd, NULL, sizeof(NULL), 0);
+            }
+        }
+        if (client_socket.size() > 0)
+        {
+            std::vector<int> temp;
+            for (it = client_socket.begin(); it != client_socket.end(); it++)
+            {
+                int sd = *it;
+
+                if (FD_ISSET(sd, &readfds))
                 {
-                    client_socket[i] = connfd;
-                    LOG(WARNING) << "Add new socket: " << connfd;
-                    break;
+                    n = read(connfd, &recvline, MAX_DATA);
+                    if (n == 0)
+                    {
+                        LOG(WARNING) << "Close socket: " << sd;
+                        close(sd);
+                        temp.push_back(sd);
+                    }
+                    else if (n > 0)
+                    {
+                        process_command(connfd, recvline, database, nextPort);
+                    }
+                }
+            }
+            for (int i = 0; i < temp.size(); i++)
+            {
+                if (client_socket.count(temp[i]) > 0)
+                {
+                    client_socket.erase(temp[i]);
                 }
             }
         }
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        if (client_socket.size() > 0)
         {
-            int sd = client_socket[i];
-
-            if (FD_ISSET(sd, &readfds))
+            for (it = client_socket.begin(); it != client_socket.end(); it++)
             {
-                n = read(connfd, &recvline, MAX_DATA);
-                if (n > 0)
-                {
-                    process_command(connfd, recvline, database, nextPort);
-                }
-                else
-                {
-                    LOG(WARNING) << "Close socket: " << sd;
-                    close(sd);
-                    client_socket[i] = -1;
-                }
+                // socket descriptor
+                int sd = *it;
+                LOG(WARNING) << "Socket " << sd << " is in set";
             }
         }
     }
     LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
-    cleanup(database, client_socket);
+    // cleanup(database, client_socket);
     return 0;
 }
