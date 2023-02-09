@@ -91,6 +91,82 @@ void cleanup(std::map<std::string, room> &database)
     }
 }
 
+void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
+{
+    if ((n = read(connfd, recvline, MAX_DATA)) > 0)
+    {
+        LOG(WARNING) << "Received " << recvline;
+        std::string command = "";
+        std::string chatroom_name = "";
+        int i = 0;
+        while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+        {
+            command += recvline[i];
+            i += 1;
+        }
+        LOG(WARNING) << "Command: " << command << "; size: " << command.length();
+        Reply reply;
+        if (command == "CREATE")
+        {
+            i += 1;
+            while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+            {
+                chatroom_name += recvline[i];
+                i += 1;
+            }
+            LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+            int found = database.count(chatroom_name);
+
+            if (chatroom_name.length() == 0)
+            {
+                reply.status = FAILURE_INVALID;
+            }
+            else if (found == 0)
+            {
+                int master_socket = new_socket(nextPort);
+                database[chatroom_name] = (room){nextPort, master_socket, master_socket};
+                reply.status = SUCCESS;
+                nextPort += 1;
+            }
+            else if (found > 0)
+            {
+                reply.status = FAILURE_ALREADY_EXISTS;
+            }
+        }
+        else if (command == "JOIN")
+        {
+        }
+        else if (command == "DELETE")
+        {
+        }
+        else if (command == "LIST")
+        {
+            std::string res = "";
+            for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+            {
+                std::string k = iter->first;
+                if (std::next(iter, 1) != database.end())
+                {
+                    res = res + k + ", ";
+                }
+                else
+                {
+                    res = res + k;
+                }
+            }
+            LOG(WARNING) << "List room: " << res;
+            reply.status = SUCCESS;
+            strcpy(reply.list_room, res.c_str());
+            debug(database);
+        }
+        else
+        {
+            reply.status = FAILURE_INVALID;
+        }
+        send(connfd, &reply, sizeof(reply), 0);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     google::InitGoogleLogging(argv[0]);
@@ -139,78 +215,7 @@ int main(int argc, char *argv[])
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            if ((n = read(connfd, recvline, MAX_DATA)) > 0)
-            {
-                LOG(WARNING) << "Received " << recvline;
-                std::string command = "";
-                std::string chatroom_name = "";
-                int i = 0;
-                while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
-                {
-                    command += recvline[i];
-                    i += 1;
-                }
-                LOG(WARNING) << "Command: " << command << "; size: " << command.length();
-                Reply reply;
-                if (command == "CREATE")
-                {
-                    i += 1;
-                    while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
-                    {
-                        chatroom_name += recvline[i];
-                        i += 1;
-                    }
-                    LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
-                    int found = database.count(chatroom_name);
-
-                    if (chatroom_name.length() == 0)
-                    {
-                        reply.status = FAILURE_INVALID;
-                    }
-                    else if (found == 0)
-                    {
-                        int master_socket = new_socket(nextPort);
-                        database[chatroom_name] = (room){nextPort, master_socket, master_socket};
-                        reply.status = SUCCESS;
-                        nextPort += 1;
-                    }
-                    else if (found > 0)
-                    {
-                        reply.status = FAILURE_ALREADY_EXISTS;
-                    }
-                }
-                else if (command == "JOIN")
-                {
-                }
-                else if (command == "DELETE")
-                {
-                }
-                else if (command == "LIST")
-                {
-                    std::string res = "";
-                    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
-                    {
-                        std::string k = iter->first;
-                        if (std::next(iter, 1) != database.end())
-                        {
-                            res = res + k + ", ";
-                        }
-                        else
-                        {
-                            res = res + k;
-                        }
-                    }
-                    LOG(WARNING) << "List room: " << res;
-                    reply.status = SUCCESS;
-                    strcpy(reply.list_room, res.c_str());
-                    debug(database);
-                }
-                else
-                {
-                    reply.status = FAILURE_INVALID;
-                }
-                send(connfd, &reply, sizeof(reply), 0);
-            }
+            process_command(n, connfd, recvline, database, nextPort);
             close(connfd);
         }
     }
