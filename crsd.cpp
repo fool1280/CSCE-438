@@ -100,7 +100,7 @@ void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLI
     }
 }
 
-void process_command(int n, int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
+void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
     LOG(WARNING) << "Received " << recvline;
     std::string command = "";
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
             n = read(connfd, &recvline, MAX_DATA);
             if (n > 0)
             {
-                process_command(n, connfd, recvline, database, nextPort);
+                process_command(connfd, recvline, database, nextPort);
             }
             // add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++)
@@ -267,18 +267,16 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(sd, &readfds))
             {
-                // Check if it was for closing, and also read theincoming message
-                if (read(sd, &recvline, MAX_DATA) <= 0)
+                n = read(connfd, &recvline, MAX_DATA);
+                if (n > 0)
                 {
-                    // Close the socket and mark as 0 in list for reuse
+                    process_command(connfd, recvline, database, nextPort);
+                }
+                else
+                {
                     LOG(WARNING) << "Close socket: " << sd;
                     close(sd);
                     client_socket[i] = -1;
-                }
-                // Echo back the message that came in
-                else
-                {
-                    process_command(n, sd, recvline, database, nextPort);
                 }
             }
         }
