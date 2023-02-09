@@ -30,9 +30,11 @@ int main(int argc, char **argv)
 	{
 
 		int sockfd = connect_to(argv[1], atoi(argv[2]));
+		LOG(INFO) << "Connect to socket: " << sockfd << " in while loop";
 
 		char command[MAX_DATA];
 		get_command(command, MAX_DATA);
+		LOG(INFO) << "Get command successfully in while loop";
 
 		struct Reply reply = process_command(sockfd, command);
 		display_reply(command, reply);
@@ -104,7 +106,7 @@ int connect_to(const char *host, const int port)
 		LOG(ERROR) << "ERROR: could not connect to server";
 		exit(EXIT_FAILURE);
 	}
-
+	LOG(INFO) << "Connect to server successfully, socket: " << sockfd;
 	return sockfd;
 }
 
@@ -135,6 +137,9 @@ struct Reply process_command(const int sockfd, char *command)
 	// - CREATE/DELETE/JOIN and "<name>" are separated by one space.
 	// ------------------------------------------------------------
 
+	LOG(INFO) << "\nprocess_command";
+	LOG(INFO) << "Socket: " << sockfd;
+	LOG(INFO) << "Command send: " << command;
 	if (send(sockfd, command, MAX_DATA, 0) < 0)
 	{
 		LOG(ERROR) << "ERROR: send failed";
@@ -147,10 +152,11 @@ struct Reply process_command(const int sockfd, char *command)
 	char response_string[MAX_DATA];
 	if (recv(sockfd, response_string, MAX_DATA, 0) < 0)
 	{
-		LOG(ERROR) << "ERROR: receive failed" << strerror(errno);
+		LOG(ERROR) << "ERROR: receive failed";
 		exit(EXIT_FAILURE);
 	}
 
+	LOG(INFO) << "Response string: " << response_string;
 	// ------------------------------------------------------------
 	// Then, we create a variable of Reply structure
 	// provided by the interface and initialize it according to

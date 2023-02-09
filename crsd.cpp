@@ -194,6 +194,8 @@ int main(int argc, char *argv[])
         LOG(ERROR) << "Socket creation error";
         exit(EXIT_FAILURE);
     }
+    LOG(WARNING) << "Master socket listenfd: " << listenfd;
+    max_sd = listenfd;
 
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
     {
@@ -217,81 +219,114 @@ int main(int argc, char *argv[])
     }
     LOG(INFO) << "Starting Server";
     fd_set readfds;
-    int temp;
+    FD_ZERO(&readfds);
+    FD_SET(listenfd, &readfds);
 
     while (true)
     {
-        FD_ZERO(&readfds);
-        FD_SET(listenfd, &readfds);
-        max_sd = listenfd;
-        if (client_socket.size() > 0)
-        {
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
-            {
-                // socket descriptor
-                int sd = *it;
-                // if valid socket descriptor then add to read list
-                if (sd > 0)
-                    FD_SET(sd, &readfds);
-                // highest file descriptor number, need it for the select function
-                if (sd > max_sd)
-                    max_sd = sd;
-            }
-        }
-        temp = select(max_sd + 1, &readfds, NULL, NULL, NULL);
+        // max_sd = listenfd;
+        // if (client_socket.size() > 0)
+        // {
+        //     for (it = client_socket.begin(); it != client_socket.end(); it++)
+        //     {
+        //         // socket descriptor
+        //         int sd = *it;
+        //         // if valid socket descriptor then add to read list
+        //         if (sd > 0)
+        //             FD_SET(sd, &readfds);
+        //         // highest file descriptor number, need it for the select function
+        //         if (sd > max_sd)
+        //             max_sd = sd;
+        //     }
+        // }
+        // select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
-        if (FD_ISSET(listenfd, &readfds))
-        {
-            connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            // n = read(connfd, &recvline, MAX_DATA);
-            // if (n > 0)
-            // {
-            //     process_command(connfd, recvline, database, nextPort);
-            // }
-            // add new socket to array of sockets
-            if (connfd >= 0)
-            {
-                client_socket.insert(connfd);
-                send(connfd, NULL, sizeof(NULL), 0);
-            }
-        }
-        else if (client_socket.size() > 0)
-        {
-            std::vector<int> temp;
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
-            {
-                int sd = *it;
+        // if (FD_ISSET(listenfd, &readfds))
+        // {
+        //     connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
+        //     // n = read(connfd, &recvline, MAX_DATA);
+        //     // if (n > 0)
+        //     // {
+        //     //     process_command(connfd, recvline, database, nextPort);
+        //     // }
+        //     // add new socket to array of sockets
+        //     if (connfd >= 0)
+        //     {
+        //         client_socket.insert(connfd);
+        //         send(connfd, NULL, sizeof(NULL), 0);
+        //     }
+        // }
+        // else if (client_socket.size() > 0)
+        // {
+        //     std::vector<int> temp;
+        //     for (it = client_socket.begin(); it != client_socket.end(); it++)
+        //     {
+        //         int sd = *it;
 
-                if (FD_ISSET(sd, &readfds))
+        //         if (FD_ISSET(sd, &readfds))
+        //         {
+        //             n = read(connfd, &recvline, MAX_DATA);
+        //             if (n == 0)
+        //             {
+        //                 LOG(WARNING) << "Close socket: " << sd;
+        //                 close(sd);
+        //                 temp.push_back(sd);
+        //             }
+        //             else if (n > 0)
+        //             {
+        //                 process_command(connfd, recvline, database, nextPort);
+        //             }
+        //         }
+        //     }
+        //     for (int i = 0; i < temp.size(); i++)
+        //     {
+        //         if (client_socket.count(temp[i]) > 0)
+        //         {
+        //             client_socket.erase(temp[i]);
+        //         }
+        //     }
+        // }
+        // if (client_socket.size() > 0)
+        // {
+        //     for (it = client_socket.begin(); it != client_socket.end(); it++)
+        //     {
+        //         // socket descriptor
+        //         int sd = *it;
+        //         LOG(WARNING) << "Socket " << sd << " is in set";
+        //     }
+        // }
+        if (select(max_sd + 1, &readfds, NULL, NULL, NULL) < 0)
+        {
+            LOG(ERROR) << "Select error";
+            exit(EXIT_FAILURE);
+        }
+        for (int i = 0; i < max_sd + 1; i++)
+        {
+            LOG(WARNING) << "TRY i: " << i;
+            if (FD_ISSET(i, &readfds))
+            {
+                LOG(WARNING) << "FD_ISSET: " << i;
+                if (i == listenfd)
                 {
-                    n = read(connfd, &recvline, MAX_DATA);
-                    if (n == 0)
+                    int connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
+                    LOG(WARNING) << "Accept connection, socket: " << connfd;
+                    FD_SET(connfd, &readfds);
+                    if (connfd > max_sd)
                     {
-                        LOG(WARNING) << "Close socket: " << sd;
-                        close(sd);
-                        temp.push_back(sd);
-                    }
-                    else if (n > 0)
-                    {
-                        process_command(connfd, recvline, database, nextPort);
+                        max_sd = connfd;
                     }
                 }
-            }
-            for (int i = 0; i < temp.size(); i++)
-            {
-                if (client_socket.count(temp[i]) > 0)
+                else
                 {
-                    client_socket.erase(temp[i]);
+                    LOG(WARNING) << "listenfd != i " << i;
+                    n = read(i, &recvline, MAX_DATA);
+                    LOG(WARNING) << "Receive n bytes: " << n;
+                    if (n > 0)
+                    {
+                        process_command(i, recvline, database, nextPort);
+                    }
+                    FD_CLR(i, &readfds);
                 }
-            }
-        }
-        if (client_socket.size() > 0)
-        {
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
-            {
-                // socket descriptor
-                int sd = *it;
-                LOG(WARNING) << "Socket " << sd << " is in set";
             }
         }
     }
