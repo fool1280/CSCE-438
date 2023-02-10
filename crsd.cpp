@@ -23,8 +23,7 @@ struct room
 {
     int port;
     int master_socket;
-    int max_socket;
-    std::vector<int> slave_socket;
+    int slave_socket[MAX_CONNECTIONS];
 };
 
 void debug(std::map<std::string, room> &database)
@@ -32,15 +31,17 @@ void debug(std::map<std::string, room> &database)
     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
     {
         LOG(WARNING) << "Chatroom name: " << iter->first << "; port: " << iter->second.port << "; master socket: " << iter->second.master_socket;
-        if (iter->second.slave_socket.size())
+        int count = 0;
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
-            LOG(WARNING) << "No socket"
-                         << "\n";
+            int socket = iter->second.slave_socket[i];
+            if (socket > 0)
+            {
+                count += 1;
+                LOG(WARNING) << "Socket: " << socket;
+            }
         }
-        for (int i = 0; i < iter->second.slave_socket.size(); i++)
-        {
-            LOG(WARNING) << "socket: " << i;
-        }
+        LOG(WARNING) << "Number of memebers: " << count;
     }
     LOG(WARNING) << "\n";
 }
@@ -81,23 +82,22 @@ int new_socket(int port)
     return listenfd;
 }
 
-void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CONNECTIONS])
+void cleanup(std::map<std::string, room> &database, std::string chatroom)
 {
-    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+    std::map<std::string, room>::iterator it = database.find(chatroom);
+    if (it != database.end())
     {
-        shutdown(iter->second.master_socket, SHUT_RDWR);
-        for (int i = 0; i < iter->second.slave_socket.size(); i++)
+        room curr = it->second;
+        shutdown(curr.master_socket, SHUT_RDWR);
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
-            close(i);
+            int sd = curr.slave_socket[i];
+            if (sd > 0)
+            {
+                close(sd);
+            }
         }
-    }
-    for (int i = 0; i < MAX_CONNECTIONS; i++)
-    {
-        if (client_socket[i] > 0)
-        {
-            close(client_socket[i]);
-            client_socket[i] = 0;
-        }
+        database.erase(chatroom);
     }
 }
 
@@ -132,7 +132,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
         else if (found == 0)
         {
             int master_socket = new_socket(nextPort);
-            database[chatroom_name] = (room){nextPort, master_socket, master_socket};
+            database[chatroom_name] = (room){nextPort, master_socket};
             reply.status = SUCCESS;
             nextPort += 1;
         }
@@ -146,6 +146,28 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
     }
     else if (command == "DELETE")
     {
+        i += 1;
+        while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+        {
+            chatroom_name += recvline[i];
+            i += 1;
+        }
+        LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+        int found = database.count(chatroom_name);
+
+        if (chatroom_name.length() == 0)
+        {
+            reply.status = FAILURE_INVALID;
+        }
+        else if (found == 0)
+        {
+            reply.status = FAILURE_NOT_EXISTS;
+        }
+        else if (found > 0)
+        {
+            cleanup(database, chatroom_name);
+            reply.status = SUCCESS;
+        }
     }
     else if (command == "LIST")
     {
@@ -283,6 +305,5 @@ int main(int argc, char *argv[])
     }
     LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
-    cleanup(database, client_socket);
     return 0;
 }
