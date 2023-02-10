@@ -17,7 +17,7 @@
 #include <set>
 
 #define PORT 8080
-#define MAX_CLIENTS 30
+#define MAX_CONNECTIONS 30
 
 struct room
 {
@@ -183,11 +183,6 @@ int main(int argc, char *argv[])
     int nextPort = 8081;
     std::map<std::string, room> database;
 
-    // initialize
-    int max_sd;
-    std::set<int> client_socket;
-    std::set<int>::iterator it;
-
     // Creating socket
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -205,7 +200,7 @@ int main(int argc, char *argv[])
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr.sin_port = htons(PORT);
-    int servaddr_len = sizeof(servaddr);
+    socklen_t servaddr_len = sizeof(servaddr);
 
     if (bind(listenfd, (sockaddr *)&servaddr, servaddr_len) < 0)
     {
@@ -217,83 +212,70 @@ int main(int argc, char *argv[])
     }
     LOG(INFO) << "Starting Server";
     fd_set readfds;
-    int temp;
+
+    // initialize
+    int max_sd;
+    int client_socket[MAX_CONNECTIONS];
+
+    for (int i = 0; i < MAX_CONNECTIONS; i++)
+    {
+        client_socket[i] = 0;
+    }
 
     while (true)
     {
         FD_ZERO(&readfds);
         FD_SET(listenfd, &readfds);
         max_sd = listenfd;
-        if (client_socket.size() > 0)
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
+            if (client_socket[i] > 0)
             {
-                // socket descriptor
-                int sd = *it;
-                // if valid socket descriptor then add to read list
-                if (sd > 0)
-                    FD_SET(sd, &readfds);
-                // highest file descriptor number, need it for the select function
-                if (sd > max_sd)
-                    max_sd = sd;
+                FD_SET(client_socket[i], &readfds);
+            }
+            if (client_socket[i] > max_sd)
+            {
+                max_sd = client_socket[i];
             }
         }
-        temp = select(max_sd + 1, &readfds, NULL, NULL, NULL);
+        select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
-            // n = read(connfd, &recvline, MAX_DATA);
-            // if (n > 0)
-            // {
-            //     process_command(connfd, recvline, database, nextPort);
-            // }
-            // add new socket to array of sockets
-            if (connfd >= 0)
+            if (connfd < 0)
             {
-                client_socket.insert(connfd);
-                // send(connfd, NULL, sizeof(NULL), 0);
+                close(connfd);
+                exit(EXIT_FAILURE);
+            }
+            for (int i = 0; i < MAX_CONNECTIONS; i++)
+            {
+                if (client_socket[i] == 0)
+                {
+                    client_socket[i] = connfd;
+                    break;
+                }
             }
         }
-        if (client_socket.size() > 0)
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
-            std::vector<int> temp;
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
-            {
-                int sd = *it;
+            int sd = client_socket[i];
 
-                if (FD_ISSET(sd, &readfds))
-                {
-                    n = read(connfd, &recvline, MAX_DATA);
-                    if (n == 0)
-                    {
-                        LOG(WARNING) << "Close socket: " << sd;
-                        close(sd);
-                        FD_CLR(sd, &readfds);
-                        temp.push_back(sd);
-                    }
-                    else if (n > 0)
-                    {
-                        process_command(connfd, recvline, database, nextPort);
-                    }
-                }
-            }
-            for (int i = 0; i < temp.size(); i++)
+            if (FD_ISSET(sd, &readfds))
             {
-                if (client_socket.count(temp[i]) > 0)
+                n = read(sd, &recvline, MAX_DATA);
+                if (n == 0)
                 {
-                    client_socket.erase(temp[i]);
-                    FD_CLR(temp[i], &readfds);
+                    LOG(WARNING) << "Close socket: " << sd;
+                    client_socket[i] = 0;
+                    close(sd);
                 }
-            }
-        }
-        if (client_socket.size() > 0)
-        {
-            for (it = client_socket.begin(); it != client_socket.end(); it++)
-            {
-                // socket descriptor
-                int sd = *it;
-                LOG(WARNING) << "Socket " << sd << " is in set";
+                else
+                {
+                    process_command(sd, recvline, database, nextPort);
+                    client_socket[i] = 0;
+                    close(sd);
+                }
             }
         }
     }
