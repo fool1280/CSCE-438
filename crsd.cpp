@@ -143,6 +143,42 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
     }
     else if (command == "JOIN")
     {
+        i += 1;
+        while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
+        {
+            chatroom_name += recvline[i];
+            i += 1;
+        }
+        LOG(WARNING) << "Chatroom name: " << chatroom_name << "; size: " << chatroom_name.length();
+        int found = database.count(chatroom_name);
+
+        if (chatroom_name.length() == 0)
+        {
+            reply.status = FAILURE_INVALID;
+        }
+        else if (found == 0)
+        {
+            reply.status = FAILURE_NOT_EXISTS;
+        }
+        else if (found > 0)
+        {
+            std::map<std::string, room>::iterator it = database.find(chatroom_name);
+            if (it != database.end())
+            {
+                room curr = it->second;
+                reply.status = SUCCESS;
+                int count = 0;
+                for (int i = 0; i < MAX_CONNECTIONS; i++)
+                {
+                    if (curr.slave_socket[i] > 0)
+                    {
+                        count += 1;
+                    }
+                }
+                reply.num_member = count;
+                reply.port = curr.port;
+            }
+        }
     }
     else if (command == "DELETE")
     {
