@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
             if (connfd >= 0)
             {
                 client_socket.insert(connfd);
-                send(connfd, NULL, sizeof(NULL), 0);
+                // send(connfd, NULL, sizeof(NULL), 0);
             }
         }
         if (client_socket.size() > 0)
@@ -269,6 +269,7 @@ int main(int argc, char *argv[])
                     {
                         LOG(WARNING) << "Close socket: " << sd;
                         close(sd);
+                        FD_CLR(sd, &readfds);
                         temp.push_back(sd);
                     }
                     else if (n > 0)
@@ -282,6 +283,7 @@ int main(int argc, char *argv[])
                 if (client_socket.count(temp[i]) > 0)
                 {
                     client_socket.erase(temp[i]);
+                    FD_CLR(temp[i], &readfds);
                 }
             }
         }
