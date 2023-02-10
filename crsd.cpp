@@ -81,24 +81,25 @@ int new_socket(int port)
     return listenfd;
 }
 
-// void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CLIENTS])
-// {
-//     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
-//     {
-//         shutdown(iter->second.master_socket, SHUT_RDWR);
-//         for (int i = 0; i < iter->second.slave_socket.size(); i++)
-//         {
-//             close(i);
-//         }
-//     }
-//     for (int i = 0; i < MAX_CLIENTS; i++)
-//     {
-//         if (client_socket[i] > 0)
-//         {
-//             close(client_socket[i]);
-//         }
-//     }
-// }
+void cleanup(std::map<std::string, room> &database, int (&client_socket)[MAX_CONNECTIONS])
+{
+    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+    {
+        shutdown(iter->second.master_socket, SHUT_RDWR);
+        for (int i = 0; i < iter->second.slave_socket.size(); i++)
+        {
+            close(i);
+        }
+    }
+    for (int i = 0; i < MAX_CONNECTIONS; i++)
+    {
+        if (client_socket[i] > 0)
+        {
+            close(client_socket[i]);
+            client_socket[i] = 0;
+        }
+    }
+}
 
 void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::string, room> &database, int &nextPort)
 {
@@ -281,6 +282,6 @@ int main(int argc, char *argv[])
     }
     LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
-    // cleanup(database, client_socket);
+    cleanup(database, client_socket);
     return 0;
 }
