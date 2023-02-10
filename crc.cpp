@@ -88,7 +88,7 @@ int connect_to(const char *host, const int port)
 	// Specify internet address and port
 	server_addr.sin_family = AF_INET;
 	// host to network, short
-	// convert big endian or little endian to the network byte order
+	// convert big endian or little endian to the network byte
 	server_addr.sin_port = htons(port);
 
 	// convert host address from string to decimal format and store in the server_addr struct
@@ -147,7 +147,7 @@ struct Reply process_command(const int sockfd, char *command)
 	char response_string[MAX_DATA];
 	if (recv(sockfd, response_string, MAX_DATA, 0) < 0)
 	{
-		LOG(ERROR) << "ERROR: receive failed";
+		LOG(ERROR) << "ERROR: receive failed" << strerror(errno);
 		exit(EXIT_FAILURE);
 	}
 
