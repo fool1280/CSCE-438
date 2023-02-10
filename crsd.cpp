@@ -279,6 +279,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
+        debug(database);
     }
     LOG(WARNING) << "Shutdown server and master socket";
     shutdown(listenfd, SHUT_RDWR);
