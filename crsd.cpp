@@ -176,6 +176,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
                         count += 1;
                     }
                 }
+                LOG(WARNING) << "Count members: " << count;
                 reply.num_member = count;
                 reply.port = curr.port;
             }
@@ -376,6 +377,7 @@ int main(int argc, char *argv[])
                     if (iter->second.slave_socket[i] == 0)
                     {
                         iter->second.slave_socket[i] = connfd;
+                        break;
                     }
                 }
             }
