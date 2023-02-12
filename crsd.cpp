@@ -17,7 +17,7 @@
 #include <set>
 
 #define PORT 8080
-#define MAX_CONNECTIONS 30
+#define MAX_CONNECTIONS 100
 
 struct room
 {
@@ -275,14 +275,20 @@ int main(int argc, char *argv[])
     // initialize
     int max_sd;
     int client_socket[MAX_CONNECTIONS];
+    int chatroom_socket[MAX_CONNECTIONS];
 
     for (int i = 0; i < MAX_CONNECTIONS; i++)
     {
         client_socket[i] = 0;
     }
+    for (int i = 0; i < MAX_CONNECTIONS; i++)
+    {
+        chatroom_socket[i] = 0;
+    }
 
     while (true)
     {
+        // server function
         FD_ZERO(&readfds);
         FD_SET(listenfd, &readfds);
         max_sd = listenfd;
@@ -297,8 +303,33 @@ int main(int argc, char *argv[])
                 max_sd = client_socket[i];
             }
         }
+
+        // chatroom function
+        for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+        {
+            int masterfd = iter->second.master_socket;
+            FD_SET(masterfd, &readfds);
+            LOG(WARNING) << "FD_SET masterfd=" << masterfd;
+            if (masterfd > max_sd)
+            {
+                max_sd = masterfd;
+            }
+        }
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
+        {
+            if (chatroom_socket[i] > 0)
+            {
+                FD_SET(chatroom_socket[i], &readfds);
+            }
+            if (chatroom_socket[i] > max_sd)
+            {
+                max_sd = chatroom_socket[i];
+            }
+        }
+
         select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
+        // server function
         if (FD_ISSET(listenfd, &readfds))
         {
             connfd = accept(listenfd, (sockaddr *)&servaddr, (socklen_t *)&servaddr_len);
@@ -316,6 +347,37 @@ int main(int argc, char *argv[])
                 }
             }
         }
+
+        // chatroom function
+        for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+        {
+            int masterfd = iter->second.master_socket;
+            if (FD_ISSET(masterfd, &readfds))
+            {
+                struct sockaddr_in new_servaddr;
+                bzero(&new_servaddr, sizeof(new_servaddr));
+                new_servaddr.sin_family = AF_INET;
+                new_servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+                new_servaddr.sin_port = htons(iter->second.port);
+                socklen_t new_servaddr_len = sizeof(new_servaddr);
+                connfd = accept(masterfd, (sockaddr *)&new_servaddr, (socklen_t *)&new_servaddr_len);
+                if (connfd < 0)
+                {
+                    close(connfd);
+                    exit(EXIT_FAILURE);
+                }
+                for (int i = 0; i < MAX_CONNECTIONS; i++)
+                {
+                    if (chatroom_socket[i] == 0)
+                    {
+                        chatroom_socket[i] = connfd;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // server function
         for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
             int sd = client_socket[i];
@@ -333,6 +395,29 @@ int main(int argc, char *argv[])
                 {
                     process_command(sd, recvline, database, nextPort);
                     client_socket[i] = 0;
+                    close(sd);
+                }
+            }
+        }
+
+        // chatroom function
+        for (int i = 0; i < MAX_CONNECTIONS; i++)
+        {
+            int sd = chatroom_socket[i];
+
+            if (FD_ISSET(sd, &readfds))
+            {
+                n = read(sd, &recvline, MAX_DATA);
+                if (n <= 0)
+                {
+                    LOG(WARNING) << "Close socket: " << sd;
+                    chatroom_socket[i] = 0;
+                    close(sd);
+                }
+                else
+                {
+                    send(sd, recvline, MAX_DATA, 0);
+                    chatroom_socket[i] = 0;
                     close(sd);
                 }
             }
