@@ -114,7 +114,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
     }
     LOG(WARNING) << "Command: " << command << "; size: " << command.length();
     Reply reply;
-    if (command == "CREATE")
+    if (command == "create")
     {
         i += 1;
         while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
@@ -142,7 +142,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
             reply.status = FAILURE_ALREADY_EXISTS;
         }
     }
-    else if (command == "JOIN")
+    else if (command == "join")
     {
         i += 1;
         while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
@@ -182,7 +182,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
             }
         }
     }
-    else if (command == "DELETE")
+    else if (command == "delete")
     {
         i += 1;
         while (recvline[i] != ' ' && i < 256 & recvline[i] != '\0')
@@ -207,7 +207,7 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
             reply.status = SUCCESS;
         }
     }
-    else if (command == "LIST")
+    else if (command == "list")
     {
         std::string res = "";
         for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
