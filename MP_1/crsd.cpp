@@ -19,6 +19,9 @@
 #define PORT 8080
 #define MAX_CONNECTIONS 100
 
+int client_socket[MAX_CONNECTIONS];
+int chatroom_socket[MAX_CONNECTIONS];
+
 struct room
 {
     int port;
@@ -92,10 +95,7 @@ void cleanup(std::map<std::string, room> &database, std::string chatroom)
         for (int i = 0; i < MAX_CONNECTIONS; i++)
         {
             int sd = curr.slave_socket[i];
-            if (sd > 0)
-            {
-                close(sd);
-            }
+            close(sd);
         }
         database.erase(chatroom);
     }
@@ -273,8 +273,6 @@ int main(int argc, char *argv[])
 
     // initialize
     int max_sd;
-    int client_socket[MAX_CONNECTIONS];
-    int chatroom_socket[MAX_CONNECTIONS];
 
     for (int i = 0; i < MAX_CONNECTIONS; i++)
     {
