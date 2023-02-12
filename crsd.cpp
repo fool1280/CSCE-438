@@ -213,16 +213,13 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
         for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
         {
             std::string k = iter->first;
-            if (std::next(iter, 1) != database.end())
-            {
-                res = res + k + ", ";
-            }
-            else
-            {
-                res = res + k;
-            }
+            res = k + "," + res;
         }
         LOG(WARNING) << "List room: " << res;
+        if (res.length() == 0)
+        {
+            res = "empty";
+        }
         reply.status = SUCCESS;
         strcpy(reply.list_room, res.c_str());
         debug(database);
