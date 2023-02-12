@@ -23,6 +23,7 @@ struct room
 {
     int port;
     int master_socket;
+    struct sockaddr_in servaddr;
     int slave_socket[MAX_CONNECTIONS];
 };
 
@@ -46,10 +47,9 @@ void debug(std::map<std::string, room> &database)
     LOG(WARNING) << "\n";
 }
 
-int new_socket(int port)
+int new_socket(int port, sockaddr_in &servaddr)
 {
     int listenfd;
-    struct sockaddr_in servaddr;
     int opt = 1;
 
     // Creating socket
@@ -131,8 +131,9 @@ void process_command(int connfd, char (&recvline)[MAX_DATA], std::map<std::strin
         }
         else if (found == 0)
         {
-            int master_socket = new_socket(nextPort);
-            database[chatroom_name] = (room){nextPort, master_socket};
+            struct sockaddr_in servaddr;
+            int master_socket = new_socket(nextPort, servaddr);
+            database[chatroom_name] = (room){nextPort, master_socket, servaddr};
             reply.status = SUCCESS;
             nextPort += 1;
         }
@@ -354,12 +355,8 @@ int main(int argc, char *argv[])
             int masterfd = iter->second.master_socket;
             if (FD_ISSET(masterfd, &readfds))
             {
-                struct sockaddr_in new_servaddr;
-                bzero(&new_servaddr, sizeof(new_servaddr));
-                new_servaddr.sin_family = AF_INET;
-                new_servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-                new_servaddr.sin_port = htons(iter->second.port);
-                socklen_t new_servaddr_len = sizeof(new_servaddr);
+                struct sockaddr_in new_servaddr = iter->second.servaddr;
+                socklen_t new_servaddr_len = sizeof(iter->second.servaddr);
                 connfd = accept(masterfd, (sockaddr *)&new_servaddr, (socklen_t *)&new_servaddr_len);
                 if (connfd < 0)
                 {
@@ -372,6 +369,13 @@ int main(int argc, char *argv[])
                     {
                         chatroom_socket[i] = connfd;
                         break;
+                    }
+                }
+                for (int i = 0; i < MAX_CONNECTIONS; i++)
+                {
+                    if (iter->second.slave_socket[i] == 0)
+                    {
+                        iter->second.slave_socket[i] = connfd;
                     }
                 }
             }
@@ -411,14 +415,44 @@ int main(int argc, char *argv[])
                 if (n <= 0)
                 {
                     LOG(WARNING) << "Close socket: " << sd;
+                    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+                    {
+                        for (int i = 0; i < MAX_CONNECTIONS; i++)
+                        {
+                            if (iter->second.slave_socket[i] == sd)
+                            {
+                                iter->second.slave_socket[i] = 0;
+                            }
+                        }
+                    }
                     chatroom_socket[i] = 0;
                     close(sd);
                 }
                 else
                 {
                     send(sd, recvline, MAX_DATA, 0);
-                    chatroom_socket[i] = 0;
-                    close(sd);
+                    for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
+                    {
+                        bool check = false;
+                        for (int i = 0; i < MAX_CONNECTIONS; i++)
+                        {
+                            if (iter->second.slave_socket[i] == sd)
+                            {
+                                check = true;
+                                break;
+                            }
+                        }
+                        if (check)
+                        {
+                            for (int i = 0; i < MAX_CONNECTIONS; i++)
+                            {
+                                if (iter->second.slave_socket[i] != sd)
+                                {
+                                    send(iter->second.slave_socket[i], recvline, MAX_DATA, 0);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
