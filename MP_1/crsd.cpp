@@ -429,7 +429,6 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    send(sd, recvline, MAX_DATA, 0);
                     for (std::map<std::string, room>::iterator iter = database.begin(); iter != database.end(); ++iter)
                     {
                         bool check = false;
