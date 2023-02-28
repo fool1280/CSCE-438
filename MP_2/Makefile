@@ -1,8 +1,9 @@
 HOST_SYSTEM = $(shell uname | cut -f 1 -d_)
 SYSTEM ?= $(HOST_SYSTEM)
 CXX = g++
-CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
-CXXFLAGS += -std=c++11
+#CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
+CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/anhnguyen/grpc/third_party/protobuf/src -I/home/anhnguyen/grpc/include -I/home/anhnguyen/grpc/third_party/abseil-cpp -pthread
+CXXFLAGS += -std=c++17
 ifeq ($(SYSTEM),Darwin)
 LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
            -lgrpc++_reflection\
@@ -24,13 +25,21 @@ tsc: sns.pb.o sns.grpc.pb.o tsc.o
 tsd: sns.pb.o sns.grpc.pb.o tsd.o
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
+# .PRECIOUS: %.grpc.pb.cc
+# %.grpc.pb.cc: %.proto
+# 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
+
+# .PRECIOUS: %.pb.cc
+# %.pb.cc: %.proto
+# 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
+
 .PRECIOUS: %.grpc.pb.cc
 %.grpc.pb.cc: %.proto
-	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
+	$(PROTOC) -I.:/home/anhnguyen/grpc/third_party/protobuf/src --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
 
 .PRECIOUS: %.pb.cc
 %.pb.cc: %.proto
-	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
+	$(PROTOC) -I.:/home/anhnguyen/grpc/third_party/protobuf/src --cpp_out=. $<
 
 clean:
 	rm -f *.txt *.o *.pb.cc *.pb.h tsc tsd
