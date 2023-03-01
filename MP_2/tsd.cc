@@ -20,6 +20,8 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <vector>
+#include <map>
 
 #include "sns.grpc.pb.h"
 
@@ -36,7 +38,10 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
-using std::cout, std::cin, std::endl;
+using std::cout, std::cin, std::endl, std::string, std::vector, std::map;
+
+vector<string> all_users;
+map<string, vector<string>> following_users;
 
 class SNSServiceImpl final : public SNSService::Service
 {

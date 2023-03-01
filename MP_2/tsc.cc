@@ -4,6 +4,14 @@
 #include <grpc++/grpc++.h>
 #include "client.h"
 
+#include "sns.grpc.pb.h"
+
+using csce438::Reply;
+using csce438::Request;
+using csce438::SNSService;
+using grpc::ClientContext;
+using grpc::Status;
+
 class Client : public IClient
 {
 public:
@@ -23,6 +31,7 @@ private:
     std::string hostname;
     std::string username;
     std::string port;
+    std::unique_ptr<SNSService::Stub> stub;
 
     // You can have an instance of the client stub
     // as a member variable.
@@ -72,6 +81,8 @@ int Client::connectTo()
     // a member variable in your own Client class.
     // Please refer to gRpc tutorial how to create a stub.
     // ------------------------------------------------------------
+    auto channel = grpc::CreateChannel("localhost:" + this->port, grpc::InsecureChannelCredentials());
+    this->stub = SNSService::NewStub(channel);
 
     return 1; // return 1 if success, otherwise return -1
 }
@@ -122,8 +133,31 @@ IReply Client::processCommand(std::string &input)
     // For the command "LIST", you should set both "all_users" and
     // "following_users" member variable of IReply.
     // ------------------------------------------------------------
-
     IReply ire;
+    if (input == "LIST")
+    {
+        ClientContext context;
+        Request request = Request();
+        Reply response;
+        request.set_username(this->username);
+        Status status = this->stub->List(&context, request, &response);
+        ire.grpc_status = status;
+        if (status.ok())
+        {
+            ire.comm_status = SUCCESS;
+        }
+        else
+        {
+            ire.comm_status = FAILURE_NOT_EXISTS;
+        }
+    }
+    else if (input == "TIMELINE")
+    {
+    }
+    else
+    {
+        // FOLLOW and UNFOLLOW
+    }
     return ire;
 }
 
