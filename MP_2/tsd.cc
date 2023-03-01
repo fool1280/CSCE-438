@@ -12,6 +12,15 @@
 #include <google/protobuf/util/time_util.h>
 #include <grpc++/grpc++.h>
 
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <fcntl.h>
+#include <errno.h>
+
 #include "sns.grpc.pb.h"
 
 using csce438::Message;
@@ -27,10 +36,10 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
+using std::cout, std::cin, std::endl;
 
 class SNSServiceImpl final : public SNSService::Service
 {
-
   Status List(ServerContext *context, const Request *request, Reply *reply) override
   {
     // ------------------------------------------------------------
@@ -89,12 +98,21 @@ void RunServer(std::string port_no)
   // which would start the server, make it listen on a particular
   // port number.
   // ------------------------------------------------------------
+  const std::string db_path = port_no;
+  std::string server_address("0.0.0.0:" + port_no);
+  SNSServiceImpl service;
+
+  ServerBuilder builder;
+  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.RegisterService(&service);
+  std::unique_ptr<Server> server(builder.BuildAndStart());
+  std::cout << "Server listening on " << server_address << std::endl;
+  server->Wait();
 }
 
 int main(int argc, char **argv)
 {
   std::string port = "3010";
-  std::cout << "test" << std::endl;
   int opt = 0;
   while ((opt = getopt(argc, argv, "p:")) != -1)
   {
