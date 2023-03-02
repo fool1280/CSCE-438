@@ -83,8 +83,19 @@ int Client::connectTo()
     // ------------------------------------------------------------
     auto channel = grpc::CreateChannel("localhost:" + this->port, grpc::InsecureChannelCredentials());
     this->stub = SNSService::NewStub(channel);
-
-    return 1; // return 1 if success, otherwise return -1
+    ClientContext context;
+    Request request = Request();
+    Reply response;
+    request.set_username(this->username);
+    Status status = this->stub->Login(&context, request, &response);
+    if (status.ok())
+    {
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 IReply Client::processCommand(std::string &input)
@@ -145,6 +156,16 @@ IReply Client::processCommand(std::string &input)
         if (status.ok())
         {
             ire.comm_status = SUCCESS;
+            auto all_users = response.all_users();
+            for (auto i : all_users)
+            {
+                ire.all_users.push_back(i);
+            }
+            auto following_users = response.following_users();
+            for (auto i : following_users)
+            {
+                ire.following_users.push_back(i);
+            }
         }
         else
         {

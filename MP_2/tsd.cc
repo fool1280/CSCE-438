@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "sns.grpc.pb.h"
 
@@ -38,9 +39,9 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
-using std::cout, std::cin, std::endl, std::string, std::vector, std::map;
+using std::cout, std::cin, std::endl, std::string, std::vector, std::map, std::set, std::pair;
 
-vector<string> all_users;
+set<string> all_users;
 map<string, vector<string>> following_users;
 
 class SNSServiceImpl final : public SNSService::Service
@@ -52,6 +53,19 @@ class SNSServiceImpl final : public SNSService::Service
     // LIST request from the user. Ensure that both the fields
     // all_users & following_users are populated
     // ------------------------------------------------------------
+    string username = request->username();
+    cout << "List request for username " << username << endl;
+    for (auto i : all_users)
+    {
+      cout << i << endl;
+      reply->add_all_users(i);
+    }
+    vector<string> following = following_users[username];
+    for (auto i : following)
+    {
+      cout << "following " << i << endl;
+      reply->add_following_users(i);
+    }
     return Status::OK;
   }
 
@@ -82,7 +96,18 @@ class SNSServiceImpl final : public SNSService::Service
     // a new user and verify if the username is available
     // or already taken
     // ------------------------------------------------------------
-    return Status::OK;
+    string username = request->username();
+    auto it = all_users.find(username);
+    if (it == all_users.end())
+    {
+      cout << "Username not exist, intialize " << username << endl;
+      all_users.insert(username);
+      following_users.insert(pair<string, vector<string>>(username, vector<string>()));
+      following_users[username].push_back(username);
+      return Status::OK;
+    }
+    cout << "Username already exists " << username << endl;
+    return Status::CANCELLED;
   }
 
   Status Timeline(ServerContext *context, ServerReaderWriter<Message, Message> *stream) override
