@@ -190,12 +190,24 @@ IReply Client::processCommand(std::string &input)
         Status status;
         if (command == "FOLLOW")
         {
+            if (username == this->username)
+            {
+                ire.grpc_status = Status::OK;
+                ire.comm_status = FAILURE_ALREADY_EXISTS;
+                return ire;
+            }
             request.set_username(this->username);
             request.add_arguments(username);
             status = this->stub->Follow(&context, request, &response);
         }
         else if (command == "UNFOLLOW")
         {
+            if (username == this->username)
+            {
+                ire.grpc_status = Status::OK;
+                ire.comm_status = FAILURE_INVALID_USERNAME;
+                return ire;
+            }
             request.set_username(this->username);
             request.add_arguments(username);
             status = this->stub->UnFollow(&context, request, &response);
