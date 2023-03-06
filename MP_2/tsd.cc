@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <string>
 #include <stdlib.h>
@@ -40,10 +41,70 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 using std::cout, std::cin, std::endl, std::string;
+using std::ofstream, std::ifstream, std::istringstream;
 using std::vector, std::map, std::set, std::pair, std::find;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
+
+void writefile()
+{
+  ofstream myfile;
+  myfile.open("followers.txt");
+  for (auto i : following_users)
+  {
+    myfile << i.first;
+    vector<string> following = i.second;
+    for (auto j : following)
+    {
+      myfile << " " << j;
+    }
+    myfile << endl;
+  }
+  myfile.close();
+};
+
+void readfile()
+{
+  string line;
+  ifstream myfile("followers.txt");
+  if (myfile.is_open())
+  {
+    set<string> new_all_users;
+    map<string, vector<string>> new_following_users;
+    while (getline(myfile, line))
+    {
+      istringstream ss(line);
+      string username;
+      ss >> username;
+      new_following_users.insert(pair<string, vector<string>>(username, vector<string>()));
+
+      string follower;
+      while (ss >> follower)
+      {
+        new_following_users[username].push_back(follower);
+      }
+    }
+    following_users = new_following_users;
+    myfile.close();
+
+    cout << "After reading files: " << endl;
+    for (auto i : following_users)
+    {
+      cout << "User " << i.first << ":";
+      vector<string> following = i.second;
+      for (auto j : following)
+      {
+        cout << " " << j;
+      }
+      cout << endl;
+    }
+  }
+  else
+  {
+    cout << "Unable to open file" << endl;
+  }
+}
 
 class SNSServiceImpl final : public SNSService::Service
 {
@@ -54,6 +115,7 @@ class SNSServiceImpl final : public SNSService::Service
     // LIST request from the user. Ensure that both the fields
     // all_users & following_users are populated
     // ------------------------------------------------------------
+    readfile();
     string username = request->username();
     cout << "List request for username " << username << endl;
     for (auto i : all_users)
@@ -67,6 +129,7 @@ class SNSServiceImpl final : public SNSService::Service
       cout << "following " << i << endl;
       reply->add_following_users(i);
     }
+    writefile();
     return Status::OK;
   }
 
@@ -77,6 +140,7 @@ class SNSServiceImpl final : public SNSService::Service
     // request from a user to follow one of the existing
     // users
     // ------------------------------------------------------------
+    readfile();
     string currentUser = request->username();
     string userToFollow = request->arguments().at(0);
     vector<string> currentFollow = following_users[currentUser];
@@ -87,6 +151,7 @@ class SNSServiceImpl final : public SNSService::Service
     if (exist != all_users.end() && hasFollow == currentFollow.end())
     {
       following_users[currentUser].push_back(userToFollow);
+      writefile();
       return Status::OK;
     }
     return Status::CANCELLED;
@@ -103,6 +168,7 @@ class SNSServiceImpl final : public SNSService::Service
     // string userToFollow = request->arguments().at(0);
     // auto exist = all_users.find(userToFollow);
     // auto hasFollow = following_users[currentUser].find(userToFollow);
+    readfile();
     string currentUser = request->username();
     string userToUnfollow = request->arguments().at(0);
     vector<string> currentFollow = following_users[currentUser];
@@ -115,6 +181,7 @@ class SNSServiceImpl final : public SNSService::Service
       following_users[currentUser].erase(
           std::remove(following_users[currentUser].begin(), following_users[currentUser].end(), userToUnfollow),
           following_users[currentUser].end());
+      writefile();
       return Status::OK;
     }
     return Status::CANCELLED;
@@ -127,14 +194,21 @@ class SNSServiceImpl final : public SNSService::Service
     // a new user and verify if the username is available
     // or already taken
     // ------------------------------------------------------------
+    readfile();
     string username = request->username();
     auto it = all_users.find(username);
     if (it == all_users.end())
     {
       cout << "Username not exist, intialize " << username << endl;
       all_users.insert(username);
-      following_users.insert(pair<string, vector<string>>(username, vector<string>()));
-      following_users[username].push_back(username);
+
+      auto it = following_users.find(username);
+      if (it == following_users.end())
+      {
+        following_users.insert(pair<string, vector<string>>(username, vector<string>()));
+        following_users[username].push_back(username);
+      }
+      writefile();
       return Status::OK;
     }
     cout << "Username already exists " << username << endl;
