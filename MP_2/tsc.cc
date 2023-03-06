@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 #include <grpc++/grpc++.h>
@@ -11,6 +12,7 @@ using csce438::Request;
 using csce438::SNSService;
 using grpc::ClientContext;
 using grpc::Status;
+using std::string, std::istringstream, std::cout;
 
 class Client : public IClient
 {
@@ -177,7 +179,48 @@ IReply Client::processCommand(std::string &input)
     }
     else
     {
-        // FOLLOW and UNFOLLOW
+        std::istringstream ss(input);
+        string command, username;
+        ss >> command;
+        ss >> username;
+
+        ClientContext context;
+        Request request = Request();
+        Reply response;
+        Status status;
+        if (command == "FOLLOW")
+        {
+            if (username == this->username)
+            {
+                ire.grpc_status = Status::OK;
+                ire.comm_status = FAILURE_ALREADY_EXISTS;
+                return ire;
+            }
+            request.set_username(this->username);
+            request.add_arguments(username);
+            status = this->stub->Follow(&context, request, &response);
+        }
+        else if (command == "UNFOLLOW")
+        {
+            if (username == this->username)
+            {
+                ire.grpc_status = Status::OK;
+                ire.comm_status = FAILURE_INVALID_USERNAME;
+                return ire;
+            }
+            request.set_username(this->username);
+            request.add_arguments(username);
+            status = this->stub->UnFollow(&context, request, &response);
+        }
+        ire.grpc_status = Status::OK;
+        if (status.ok())
+        {
+            ire.comm_status = SUCCESS;
+        }
+        else
+        {
+            ire.comm_status = FAILURE_INVALID_USERNAME;
+        }
     }
     return ire;
 }

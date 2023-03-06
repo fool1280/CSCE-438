@@ -39,7 +39,8 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
-using std::cout, std::cin, std::endl, std::string, std::vector, std::map, std::set, std::pair;
+using std::cout, std::cin, std::endl, std::string;
+using std::vector, std::map, std::set, std::pair, std::find;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
@@ -76,7 +77,19 @@ class SNSServiceImpl final : public SNSService::Service
     // request from a user to follow one of the existing
     // users
     // ------------------------------------------------------------
-    return Status::OK;
+    string currentUser = request->username();
+    string userToFollow = request->arguments().at(0);
+    vector<string> currentFollow = following_users[currentUser];
+    auto exist = all_users.find(userToFollow);
+    auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToFollow);
+    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
+    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    if (exist != all_users.end() && hasFollow == currentFollow.end())
+    {
+      following_users[currentUser].push_back(userToFollow);
+      return Status::OK;
+    }
+    return Status::CANCELLED;
   }
 
   Status UnFollow(ServerContext *context, const Request *request, Reply *reply) override
@@ -86,7 +99,25 @@ class SNSServiceImpl final : public SNSService::Service
     // request from a user to unfollow one of his/her existing
     // followers
     // ------------------------------------------------------------
-    return Status::OK;
+    // string currentUser = request->username();
+    // string userToFollow = request->arguments().at(0);
+    // auto exist = all_users.find(userToFollow);
+    // auto hasFollow = following_users[currentUser].find(userToFollow);
+    string currentUser = request->username();
+    string userToUnfollow = request->arguments().at(0);
+    vector<string> currentFollow = following_users[currentUser];
+    auto exist = all_users.find(userToUnfollow);
+    auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToUnfollow);
+    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
+    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    if (exist != all_users.end() && hasFollow != currentFollow.end())
+    {
+      following_users[currentUser].erase(
+          std::remove(following_users[currentUser].begin(), following_users[currentUser].end(), userToUnfollow),
+          following_users[currentUser].end());
+      return Status::OK;
+    }
+    return Status::CANCELLED;
   }
 
   Status Login(ServerContext *context, const Request *request, Reply *reply) override
