@@ -40,10 +40,28 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 using std::cout, std::cin, std::endl, std::string;
+using std::ofstream;
 using std::vector, std::map, std::set, std::pair, std::find;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
+
+void writefile()
+{
+  ofstream myfile;
+  myfile.open("followers.txt");
+  for (auto i : all_users)
+  {
+    myfile << i;
+    vector<string> following = following_users[i];
+    for (auto j : following)
+    {
+      myfile << " " << j;
+    }
+    myfile << endl;
+  }
+  myfile.close();
+};
 
 class SNSServiceImpl final : public SNSService::Service
 {
@@ -67,6 +85,7 @@ class SNSServiceImpl final : public SNSService::Service
       cout << "following " << i << endl;
       reply->add_following_users(i);
     }
+    writefile();
     return Status::OK;
   }
 
@@ -87,6 +106,7 @@ class SNSServiceImpl final : public SNSService::Service
     if (exist != all_users.end() && hasFollow == currentFollow.end())
     {
       following_users[currentUser].push_back(userToFollow);
+      writefile();
       return Status::OK;
     }
     return Status::CANCELLED;
@@ -115,6 +135,7 @@ class SNSServiceImpl final : public SNSService::Service
       following_users[currentUser].erase(
           std::remove(following_users[currentUser].begin(), following_users[currentUser].end(), userToUnfollow),
           following_users[currentUser].end());
+      writefile();
       return Status::OK;
     }
     return Status::CANCELLED;
@@ -135,6 +156,7 @@ class SNSServiceImpl final : public SNSService::Service
       all_users.insert(username);
       following_users.insert(pair<string, vector<string>>(username, vector<string>()));
       following_users[username].push_back(username);
+      writefile();
       return Status::OK;
     }
     cout << "Username already exists " << username << endl;
