@@ -6,7 +6,6 @@
 #include <grpc++/grpc++.h>
 #include <ctime>
 #include <google/protobuf/timestamp.pb.h>
-#include <google/protobuf/util/time_util.h>
 #include "client.h"
 
 #include "sns.grpc.pb.h"
@@ -242,8 +241,8 @@ void writeThread(grpc::ClientReaderWriter<Message, Message> *clientRW, std::stri
         getline(std::cin, message);
         msg.set_msg(message);
         msg.set_username(username);
-        google::protobuf::Timestamp timestamp = google::protobuf::util::TimeUtil::GetCurrentTime();
-        msg.set_allocated_timestamp(&timestamp);
+        google::protobuf::Timestamp *timestamp = msg.mutable_timestamp();
+        timestamp->set_seconds(time(0));
         clientRW->Write(msg);
     };
 }
@@ -273,13 +272,12 @@ void Client::processTimeline()
     Reply response;
     Status status;
     auto clientRW = stub->Timeline(&context);
-
     std::thread writer(writeThread, clientRW.get(), sender);
 
     Message msg;
     while (clientRW->Read(&msg))
     {
-        static time_t time = google::protobuf::util::TimeUtil::TimestampToTimeT(msg.timestamp());
+        time_t time = msg.timestamp().seconds();
         displayPostMessage(msg.username(), msg.msg(), time);
     }
     writer.join();

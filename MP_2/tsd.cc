@@ -232,13 +232,38 @@ class SNSServiceImpl final : public SNSService::Service
       streams.insert(pair<string, ServerReaderWriter<Message, Message> *>(username, stream));
     }
 
-    // vector<Message> last_20_messages;
-    // string line;
-    // ifstream myfile(username + "_timeline.txt");
-    // if (myfile.is_open())
-    // {
-    //   string user = ge
-    // }
+    vector<Message> last_20_messages;
+    string line;
+    ifstream myfile(username + "_timeline.txt");
+    if (myfile.is_open())
+    {
+      int count = 0;
+      string username;
+      while (getline(cin, username))
+      {
+        string message;
+        getline(cin, message);
+        string timestamp_str;
+        getline(cin, timestamp_str);
+
+        Message msg;
+        msg.set_username(username);
+        msg.set_msg(message);
+        google::protobuf::Timestamp time;
+        google::protobuf::util::TimeUtil::FromString(timestamp_str, &time);
+        msg.set_allocated_timestamp(&time);
+        last_20_messages.push_back(msg);
+        count += 1;
+        if (count == 20)
+        {
+          break;
+        }
+      }
+      for (int i = last_20_messages.size() - 1; i >= 0; i--)
+      {
+        stream->Write(last_20_messages[i]);
+      }
+    }
 
     Message msg;
     while (stream->Read(&msg))

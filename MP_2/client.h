@@ -8,6 +8,7 @@
 #define MAX_DATA 256
 using csce438::Message;
 using grpc::ClientReaderWriter;
+using std::endl, std::cout;
 
 enum IStatus
 {
