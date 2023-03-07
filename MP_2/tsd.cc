@@ -259,9 +259,11 @@ class SNSServiceImpl final : public SNSService::Service
           break;
         }
       }
+      myfile.close();
       for (int i = last_20_messages.size() - 1; i >= 0; i--)
       {
         stream->Write(last_20_messages[i]);
+        cout << "Write successfully " << last_20_messages[i].msg() << endl;
       }
     }
 
