@@ -2,6 +2,7 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/duration.pb.h>
+#include <google/protobuf/util/time_util.h>
 
 #include <fstream>
 #include <iostream>
@@ -10,7 +11,6 @@
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
-#include <google/protobuf/util/time_util.h>
 #include <grpc++/grpc++.h>
 
 #include <arpa/inet.h>
@@ -46,6 +46,7 @@ using std::vector, std::map, std::set, std::pair, std::find;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
+map<string, ServerReaderWriter<Message, Message> *> streams;
 
 void writefile()
 {
@@ -222,6 +223,41 @@ class SNSServiceImpl final : public SNSService::Service
     // receiving a message/post from a user, recording it in a file
     // and then making it available on his/her follower's streams
     // ------------------------------------------------------------
+    readfile();
+    auto data = context->client_metadata().find("username")->second;
+    string username(data.data(), data.size());
+
+    if (streams.find(username) == streams.end())
+    {
+      streams.insert(pair<string, ServerReaderWriter<Message, Message> *>(username, stream));
+    }
+
+    // vector<Message> last_20_messages;
+    // string line;
+    // ifstream myfile(username + "_timeline.txt");
+    // if (myfile.is_open())
+    // {
+    //   string user = ge
+    // }
+
+    Message msg;
+    while (stream->Read(&msg))
+    {
+      for (auto i : following_users)
+      {
+        string user = i.first;
+        vector<string> followers = i.second;
+        if (std::find(followers.begin(), followers.end(), username) != followers.end())
+        {
+          ofstream ofile;
+          ofile.open(user + "_timeline.txt", std::ios_base::app);
+          ofile << msg.username() << endl;
+          ofile << msg.msg() << endl;
+          ofile << google::protobuf::util::TimeUtil::ToString(msg.timestamp()) << endl;
+          ofile.close();
+        }
+      }
+    }
     return Status::OK;
   }
 };

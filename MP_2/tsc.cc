@@ -1,18 +1,24 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unistd.h>
 #include <grpc++/grpc++.h>
+#include <ctime>
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
 #include "client.h"
 
 #include "sns.grpc.pb.h"
 
+using csce438::Message;
 using csce438::Reply;
 using csce438::Request;
 using csce438::SNSService;
 using grpc::ClientContext;
+using grpc::ClientReaderWriter;
 using grpc::Status;
-using std::string, std::istringstream, std::cout;
+using std::string, std::istringstream, std::cout, std::endl;
 
 class Client : public IClient
 {
@@ -176,6 +182,8 @@ IReply Client::processCommand(std::string &input)
     }
     else if (input == "TIMELINE")
     {
+        ire.grpc_status = Status::OK;
+        ire.comm_status = SUCCESS;
     }
     else
     {
@@ -225,6 +233,21 @@ IReply Client::processCommand(std::string &input)
     return ire;
 }
 
+void writeThread(grpc::ClientReaderWriter<Message, Message> *clientRW, std::string username)
+{
+    Message msg;
+    while (true)
+    {
+        string message;
+        getline(std::cin, message);
+        msg.set_msg(message);
+        msg.set_username(username);
+        google::protobuf::Timestamp timestamp = google::protobuf::util::TimeUtil::GetCurrentTime();
+        msg.set_allocated_timestamp(&timestamp);
+        clientRW->Write(msg);
+    };
+}
+
 void Client::processTimeline()
 {
     // ------------------------------------------------------------
@@ -243,4 +266,21 @@ void Client::processTimeline()
     // and you can terminate the client program by pressing
     // CTRL-C (SIGINT)
     // ------------------------------------------------------------
+    ClientContext context;
+    std::string sender = this->username;
+    context.AddMetadata("username", sender);
+    Request request = Request();
+    Reply response;
+    Status status;
+    auto clientRW = stub->Timeline(&context);
+
+    std::thread writer(writeThread, clientRW.get(), sender);
+
+    Message msg;
+    while (clientRW->Read(&msg))
+    {
+        static time_t time = google::protobuf::util::TimeUtil::TimestampToTimeT(msg.timestamp());
+        displayPostMessage(msg.username(), msg.msg(), time);
+    }
+    writer.join();
 }
