@@ -42,7 +42,7 @@ using grpc::ServerWriter;
 using grpc::Status;
 using std::cout, std::cin, std::endl, std::string;
 using std::ofstream, std::ifstream, std::istringstream;
-using std::vector, std::map, std::set, std::pair, std::find;
+using std::vector, std::map, std::set, std::pair, std::find, std::getline;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
@@ -234,24 +234,31 @@ class SNSServiceImpl final : public SNSService::Service
 
     vector<Message> last_20_messages;
     string line;
-    ifstream myfile(username + "_timeline.txt");
+    string filename = username + "_timeline.txt";
+    ifstream myfile(filename);
     if (myfile.is_open())
     {
       int count = 0;
-      string username;
-      while (getline(cin, username))
+      string sender;
+      cout << "Open file " << filename << " successfully " << endl;
+      while (getline(myfile, sender))
       {
         string message;
-        getline(cin, message);
+        getline(myfile, message);
         string timestamp_str;
-        getline(cin, timestamp_str);
+        getline(myfile, timestamp_str);
+
+        cout << "Username: " << sender << endl;
+        cout << "Message: " << message << endl;
+        cout << "Timestamp: " << timestamp_str << endl;
 
         Message msg;
-        msg.set_username(username);
+        msg.set_username(sender);
         msg.set_msg(message);
         google::protobuf::Timestamp time;
         google::protobuf::util::TimeUtil::FromString(timestamp_str, &time);
-        msg.set_allocated_timestamp(&time);
+        google::protobuf::Timestamp *timestamp = msg.mutable_timestamp();
+        timestamp->set_seconds(time.seconds());
         last_20_messages.push_back(msg);
         count += 1;
         if (count == 20)
@@ -270,12 +277,19 @@ class SNSServiceImpl final : public SNSService::Service
     Message msg;
     while (stream->Read(&msg))
     {
+      cout << "Received message: " << msg.msg() << endl;
       for (auto i : following_users)
       {
         string user = i.first;
         vector<string> followers = i.second;
         if (std::find(followers.begin(), followers.end(), username) != followers.end())
         {
+          cout << user << " follows " << username << endl;
+          if (streams.find(user) != streams.end() && username != user)
+          {
+            cout << "Write to SeverReaderWriter" << endl;
+            streams[user]->Write(msg);
+          }
           ofstream ofile;
           ofile.open(user + "_timeline.txt", std::ios_base::app);
           ofile << msg.username() << endl;
