@@ -89,21 +89,21 @@ void readfile()
     following_users = new_following_users;
     myfile.close();
 
-    cout << "After reading files: " << endl;
+    // cout <<  "After reading files: " << endl;
     for (auto i : following_users)
     {
-      cout << "User " << i.first << ":";
+      // cout <<  "User " << i.first << ":";
       vector<string> following = i.second;
       for (auto j : following)
       {
-        cout << " " << j;
+        // cout <<  " " << j;
       }
-      cout << endl;
+      // cout <<  endl;
     }
   }
   else
   {
-    cout << "Unable to open file" << endl;
+    // cout <<  "Unable to open file" << endl;
   }
 }
 
@@ -118,16 +118,16 @@ class SNSServiceImpl final : public SNSService::Service
     // ------------------------------------------------------------
     readfile();
     string username = request->username();
-    cout << "List request for username " << username << endl;
+    // cout <<  "List request for username " << username << endl;
     for (auto i : all_users)
     {
-      cout << i << endl;
+      // cout <<  i << endl;
       reply->add_all_users(i);
     }
     vector<string> following = following_users[username];
     for (auto i : following)
     {
-      cout << "following " << i << endl;
+      // cout <<  "following " << i << endl;
       reply->add_following_users(i);
     }
     writefile();
@@ -147,8 +147,8 @@ class SNSServiceImpl final : public SNSService::Service
     vector<string> currentFollow = following_users[currentUser];
     auto exist = all_users.find(userToFollow);
     auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToFollow);
-    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
-    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    // cout <<  "User exist: " << (bool)(exist != all_users.end()) << endl;
+    // cout <<  "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
     if (exist != all_users.end() && hasFollow == currentFollow.end())
     {
       following_users[currentUser].push_back(userToFollow);
@@ -175,8 +175,8 @@ class SNSServiceImpl final : public SNSService::Service
     vector<string> currentFollow = following_users[currentUser];
     auto exist = all_users.find(userToUnfollow);
     auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToUnfollow);
-    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
-    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    // cout <<  "User exist: " << (bool)(exist != all_users.end()) << endl;
+    // cout <<  "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
     if (exist != all_users.end() && hasFollow != currentFollow.end())
     {
       following_users[currentUser].erase(
@@ -200,7 +200,7 @@ class SNSServiceImpl final : public SNSService::Service
     auto it = all_users.find(username);
     if (it == all_users.end())
     {
-      cout << "Username not exist, intialize " << username << endl;
+      // cout <<  "Username not exist, intialize " << username << endl;
       all_users.insert(username);
 
       auto it = following_users.find(username);
@@ -212,7 +212,7 @@ class SNSServiceImpl final : public SNSService::Service
       writefile();
       return Status::OK;
     }
-    cout << "Username already exists " << username << endl;
+    // cout <<  "Username already exists " << username << endl;
     return Status::CANCELLED;
   }
 
@@ -240,7 +240,7 @@ class SNSServiceImpl final : public SNSService::Service
     {
       int count = 0;
       string sender;
-      cout << "Open file " << filename << " successfully " << endl;
+      // cout <<  "Open file " << filename << " successfully " << endl;
       while (getline(myfile, sender))
       {
         string message;
@@ -248,9 +248,9 @@ class SNSServiceImpl final : public SNSService::Service
         string timestamp_str;
         getline(myfile, timestamp_str);
 
-        cout << "Username: " << sender << endl;
-        cout << "Message: " << message << endl;
-        cout << "Timestamp: " << timestamp_str << endl;
+        // cout <<  "Username: " << sender << endl;
+        // cout <<  "Message: " << message << endl;
+        // cout <<  "Timestamp: " << timestamp_str << endl;
 
         Message msg;
         msg.set_username(sender);
@@ -270,24 +270,24 @@ class SNSServiceImpl final : public SNSService::Service
       for (int i = last_20_messages.size() - 1; i >= 0; i--)
       {
         stream->Write(last_20_messages[i]);
-        cout << "Write successfully " << last_20_messages[i].msg() << endl;
+        // cout <<  "Write successfully " << last_20_messages[i].msg() << endl;
       }
     }
 
     Message msg;
     while (stream->Read(&msg))
     {
-      cout << "Received message: " << msg.msg() << endl;
+      // cout <<  "Received message: " << msg.msg() << endl;
       for (auto i : following_users)
       {
         string user = i.first;
         vector<string> followers = i.second;
         if (std::find(followers.begin(), followers.end(), username) != followers.end())
         {
-          cout << user << " follows " << username << endl;
+          // cout <<  user << " follows " << username << endl;
           if (streams.find(user) != streams.end() && username != user)
           {
-            cout << "Write to SeverReaderWriter" << endl;
+            // cout <<  "Write to SeverReaderWriter" << endl;
             streams[user]->Write(msg);
           }
           ofstream ofile;
@@ -318,7 +318,7 @@ void RunServer(std::string port_no)
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+  // std::// cout <<   "Server listening on " << server_address << std::endl;
   server->Wait();
 }
 
