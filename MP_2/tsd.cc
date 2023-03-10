@@ -2,6 +2,7 @@
 
 #include <google/protobuf/timestamp.pb.h>
 #include <google/protobuf/duration.pb.h>
+#include <google/protobuf/util/time_util.h>
 
 #include <fstream>
 #include <iostream>
@@ -10,7 +11,6 @@
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
-#include <google/protobuf/util/time_util.h>
 #include <grpc++/grpc++.h>
 
 #include <arpa/inet.h>
@@ -42,10 +42,11 @@ using grpc::ServerWriter;
 using grpc::Status;
 using std::cout, std::cin, std::endl, std::string;
 using std::ofstream, std::ifstream, std::istringstream;
-using std::vector, std::map, std::set, std::pair, std::find;
+using std::vector, std::map, std::set, std::pair, std::find, std::getline;
 
 set<string> all_users;
 map<string, vector<string>> following_users;
+map<string, ServerReaderWriter<Message, Message> *> streams;
 
 void writefile()
 {
@@ -88,21 +89,21 @@ void readfile()
     following_users = new_following_users;
     myfile.close();
 
-    cout << "After reading files: " << endl;
+    // cout <<  "After reading files: " << endl;
     for (auto i : following_users)
     {
-      cout << "User " << i.first << ":";
+      // cout <<  "User " << i.first << ":";
       vector<string> following = i.second;
       for (auto j : following)
       {
-        cout << " " << j;
+        // cout <<  " " << j;
       }
-      cout << endl;
+      // cout <<  endl;
     }
   }
   else
   {
-    cout << "Unable to open file" << endl;
+    // cout <<  "Unable to open file" << endl;
   }
 }
 
@@ -117,16 +118,16 @@ class SNSServiceImpl final : public SNSService::Service
     // ------------------------------------------------------------
     readfile();
     string username = request->username();
-    cout << "List request for username " << username << endl;
+    // cout <<  "List request for username " << username << endl;
     for (auto i : all_users)
     {
-      cout << i << endl;
+      // cout <<  i << endl;
       reply->add_all_users(i);
     }
     vector<string> following = following_users[username];
     for (auto i : following)
     {
-      cout << "following " << i << endl;
+      // cout <<  "following " << i << endl;
       reply->add_following_users(i);
     }
     writefile();
@@ -146,8 +147,8 @@ class SNSServiceImpl final : public SNSService::Service
     vector<string> currentFollow = following_users[currentUser];
     auto exist = all_users.find(userToFollow);
     auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToFollow);
-    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
-    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    // cout <<  "User exist: " << (bool)(exist != all_users.end()) << endl;
+    // cout <<  "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
     if (exist != all_users.end() && hasFollow == currentFollow.end())
     {
       following_users[currentUser].push_back(userToFollow);
@@ -174,8 +175,8 @@ class SNSServiceImpl final : public SNSService::Service
     vector<string> currentFollow = following_users[currentUser];
     auto exist = all_users.find(userToUnfollow);
     auto hasFollow = std::find(currentFollow.begin(), currentFollow.end(), userToUnfollow);
-    cout << "User exist: " << (bool)(exist != all_users.end()) << endl;
-    cout << "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
+    // cout <<  "User exist: " << (bool)(exist != all_users.end()) << endl;
+    // cout <<  "User " << currentUser << " has follow: " << (bool)(hasFollow != currentFollow.end()) << endl;
     if (exist != all_users.end() && hasFollow != currentFollow.end())
     {
       following_users[currentUser].erase(
@@ -199,7 +200,7 @@ class SNSServiceImpl final : public SNSService::Service
     auto it = all_users.find(username);
     if (it == all_users.end())
     {
-      cout << "Username not exist, intialize " << username << endl;
+      // cout <<  "Username not exist, intialize " << username << endl;
       all_users.insert(username);
 
       auto it = following_users.find(username);
@@ -211,7 +212,7 @@ class SNSServiceImpl final : public SNSService::Service
       writefile();
       return Status::OK;
     }
-    cout << "Username already exists " << username << endl;
+    // cout <<  "Username already exists " << username << endl;
     return Status::CANCELLED;
   }
 
@@ -222,6 +223,82 @@ class SNSServiceImpl final : public SNSService::Service
     // receiving a message/post from a user, recording it in a file
     // and then making it available on his/her follower's streams
     // ------------------------------------------------------------
+    readfile();
+    auto data = context->client_metadata().find("username")->second;
+    string username(data.data(), data.size());
+
+    if (streams.find(username) == streams.end())
+    {
+      streams.insert(pair<string, ServerReaderWriter<Message, Message> *>(username, stream));
+    }
+
+    vector<Message> last_20_messages;
+    string line;
+    string filename = username + "_timeline.txt";
+    ifstream myfile(filename);
+    if (myfile.is_open())
+    {
+      int count = 0;
+      string sender;
+      // cout <<  "Open file " << filename << " successfully " << endl;
+      while (getline(myfile, sender))
+      {
+        string message;
+        getline(myfile, message);
+        string timestamp_str;
+        getline(myfile, timestamp_str);
+
+        // cout <<  "Username: " << sender << endl;
+        // cout <<  "Message: " << message << endl;
+        // cout <<  "Timestamp: " << timestamp_str << endl;
+
+        Message msg;
+        msg.set_username(sender);
+        msg.set_msg(message);
+        google::protobuf::Timestamp time;
+        google::protobuf::util::TimeUtil::FromString(timestamp_str, &time);
+        google::protobuf::Timestamp *timestamp = msg.mutable_timestamp();
+        timestamp->set_seconds(time.seconds());
+        last_20_messages.push_back(msg);
+        count += 1;
+        if (count == 20)
+        {
+          break;
+        }
+      }
+      myfile.close();
+      for (int i = last_20_messages.size() - 1; i >= 0; i--)
+      {
+        stream->Write(last_20_messages[i]);
+        // cout <<  "Write successfully " << last_20_messages[i].msg() << endl;
+      }
+    }
+
+    Message msg;
+    while (stream->Read(&msg))
+    {
+      // cout <<  "Received message: " << msg.msg() << endl;
+      for (auto i : following_users)
+      {
+        string user = i.first;
+        vector<string> followers = i.second;
+        if (std::find(followers.begin(), followers.end(), username) != followers.end())
+        {
+          // cout <<  user << " follows " << username << endl;
+          if (streams.find(user) != streams.end() && username != user)
+          {
+            // cout <<  "Write to SeverReaderWriter" << endl;
+            streams[user]->Write(msg);
+          }
+          ofstream ofile;
+          ofile.open(user + "_timeline.txt", std::ios_base::app);
+          ofile << msg.username() << endl;
+          ofile << msg.msg() << endl;
+          ofile << google::protobuf::util::TimeUtil::ToString(msg.timestamp()) << endl;
+          ofile.close();
+        }
+      }
+    }
     return Status::OK;
   }
 };
@@ -241,7 +318,7 @@ void RunServer(std::string port_no)
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+  // std::// cout <<   "Server listening on " << server_address << std::endl;
   server->Wait();
 }
 
