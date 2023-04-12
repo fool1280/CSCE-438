@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package snsCoordinator;
+
+import "google/protobuf/timestamp.proto";
+
+service SNSCoordinator {
+	rpc HandleHeartBeats (stream Heartbeat) returns (stream Heartbeat) {}
+	rpc GetFollowSyncsForUsers (Users) returns (FollowSyncs) {}
+	rpc GetServer (User) returns (Server) {}
+	rpc GetSlave (ClusterId) returns (Server) {} // For master to communicate with slave
+}
+
+
+// Server Types - useful for HeartBeat
+enum ServerType {
+	MASTER = 1;
+	SLAVE = 2;
+	SYNC = 3;
+}
+
+
+
+// 	Resolving server
+message User {
+	int32 user_id = 1;
+}
+message ClusterId {
+	int32 cluster = 1;
+}
+message Server {
+	string server_ip = 1;
+	string port_num = 2;
+	int32 server_id = 3; // is equivalent to cluster ID
+	ServerType server_type = 4;
+}
+
+
+
+// Encapsulating multiple requests into one to avoid to many requests to co-ordinator.
+// This information can be requested only if not available already. Ex: If F1 already knows F2 is handling U2, skip adding U2 in the request.
+message Users {
+	repeated int32 users = 1;
+}
+message FollowSyncs {
+	repeated int32 users = 1;
+	repeated int32 follow_syncs = 2;
+	repeated string follow_sync_ip = 3;
+	repeated string port_nums = 4;
+}
+
+
+
+// Heartbeat stream
+message Heartbeat {
+	int32 server_id = 1;
+	ServerType server_type = 2;
+	string server_ip = 3;
+	string server_port = 4;
+	google.protobuf.Timestamp timestamp = 5;
+}
