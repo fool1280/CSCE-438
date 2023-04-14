@@ -27,12 +27,18 @@ PROTOC = protoc
 GRPC_CPP_PLUGIN = grpc_cpp_plugin
 GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
-all: system-check tsc tsd 
+all: system-check tsc tsd coord followsync
 
-tsc: sns.pb.o sns.grpc.pb.o tsc.o
+tsc: sns.pb.o sns.grpc.pb.o tsc.o 
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
 tsd: sns.pb.o sns.grpc.pb.o tsd.o
+	$(CXX) $^ $(LDFLAGS) -g -o $@
+
+coord: snsCoordinator.pb.o snsCoordinator.grpc.pb.o coord.o
+	$(CXX) $^ $(LDFLAGS) -g -o $@
+
+followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
 # .PRECIOUS: %.grpc.pb.cc
