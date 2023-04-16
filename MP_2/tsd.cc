@@ -238,7 +238,6 @@ class SNSServiceImpl final : public SNSService::Service
     ifstream myfile(filename);
     if (myfile.is_open())
     {
-      int count = 0;
       string sender;
       // cout <<  "Open file " << filename << " successfully " << endl;
       while (getline(myfile, sender))
@@ -260,16 +259,16 @@ class SNSServiceImpl final : public SNSService::Service
         google::protobuf::Timestamp *timestamp = msg.mutable_timestamp();
         timestamp->set_seconds(time.seconds());
         last_20_messages.push_back(msg);
-        count += 1;
-        if (count == 20)
-        {
-          break;
-        }
       }
       myfile.close();
+      int count = 0;
       for (int i = last_20_messages.size() - 1; i >= 0; i--)
       {
+        count += 1;
         stream->Write(last_20_messages[i]);
+        if (count == 20) {
+          break;
+        }
         // cout <<  "Write successfully " << last_20_messages[i].msg() << endl;
       }
     }
