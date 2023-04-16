@@ -11,7 +11,7 @@ service SNSFollowSync {
 }
 
 
-Ex: U1 follows U2. followee: U1, follower: U2
+// Ex: U1 follows U2. followee: U1, follower: U2
 message Relation {
     int32 followee = 1;
     int32 follower = 2;

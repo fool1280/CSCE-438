@@ -14,12 +14,11 @@ service SNSCoordinator {
 
 // Server Types - useful for HeartBeat
 enum ServerType {
+	FAKE = 0;
 	MASTER = 1;
 	SLAVE = 2;
 	SYNC = 3;
 }
-
-
 
 // 	Resolving server
 message User {
@@ -34,8 +33,6 @@ message Server {
 	int32 server_id = 3; // is equivalent to cluster ID
 	ServerType server_type = 4;
 }
-
-
 
 // Encapsulating multiple requests into one to avoid to many requests to co-ordinator.
 // This information can be requested only if not available already. Ex: If F1 already knows F2 is handling U2, skip adding U2 in the request.

@@ -1,6 +1,7 @@
 HOST_SYSTEM = $(shell uname | cut -f 1 -d_)
 SYSTEM ?= $(HOST_SYSTEM)
 CXX = g++
+
 CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
 CXXFLAGS += -std=c++11
 ifeq ($(SYSTEM),Darwin)
@@ -16,12 +17,19 @@ PROTOC = protoc
 GRPC_CPP_PLUGIN = grpc_cpp_plugin
 GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
-all: system-check tsc tsd 
 
-tsc: sns.pb.o sns.grpc.pb.o tsc.o
+all: system-check tsc tsd coord followsync
+
+tsc: sns.pb.o sns.grpc.pb.o tsc.o 
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
 tsd: sns.pb.o sns.grpc.pb.o tsd.o
+	$(CXX) $^ $(LDFLAGS) -g -o $@
+
+coord: snsCoordinator.pb.o snsCoordinator.grpc.pb.o coord.o
+	$(CXX) $^ $(LDFLAGS) -g -o $@
+
+followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
 .PRECIOUS: %.grpc.pb.cc
