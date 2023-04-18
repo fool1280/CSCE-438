@@ -41,7 +41,7 @@ followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
 
 clean:
-	rm -f *.txt *.o *.pb.cc *.pb.h tsc tsd
+	rm -f *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync
 
 
 # The following is to test your system and ensure a smoother experience.
