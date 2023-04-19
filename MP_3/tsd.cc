@@ -40,6 +40,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
+#include <chrono>
 #include <stdlib.h>
 #include <unistd.h>
 #include <google/protobuf/util/time_util.h>
@@ -277,12 +279,27 @@ class SNSServiceImpl final : public SNSService::Service
   }
 };
 
+void sendHeartbeat()
+{
+  int i = 0;
+  while (true)
+  {
+    log(INFO, "Signal " + std::to_string(i));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    i += 1;
+  }
+}
+
 void RunServer(std::string ip, std::string coordPort, std::string port, int serverId, std::string type)
 {
   log(INFO, "coord ip: " + ip);
   log(INFO, "coord port: " + coordPort);
   log(INFO, "server id: " + std::to_string(serverId));
   log(INFO, "type: " + type);
+
+  std::thread signalThread(sendHeartbeat);
+  signalThread.detach();
+
   std::string server_address = "0.0.0.0:" + port;
   SNSServiceImpl service;
 
