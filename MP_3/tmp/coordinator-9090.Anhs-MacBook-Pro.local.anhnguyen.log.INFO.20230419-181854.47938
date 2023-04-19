@@ -1,9 +1,0 @@
-Log file created at: 2023/04/19 18:18:54
-Running on machine: Anhs-MacBook-Pro.local
-Running duration (h:mm:ss): 0:00:00
-Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
-I20230419 18:18:54.299974 834146 coord.cc:126] Logging Initialized. Coordinator starting on port 9090
-I20230419 18:18:54.306252 834146 coord.cc:101] Coordinator listening on 0.0.0.0:9090
-I20230419 18:18:57.407588 834168 coord.cc:76] Heartbeats Request
-I20230419 18:18:57.407692 834168 coord.cc:85] ip=localhost,type=,port=3010,timestamp=2023-04-19T23:18:57Z
-I20230419 18:19:07.412156 834168 coord.cc:85] ip=localhost,type=,port=3010,timestamp=2023-04-19T23:19:07Z

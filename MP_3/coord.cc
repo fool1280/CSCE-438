@@ -82,7 +82,7 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       std::string server_ip = heartbeat.server_ip();
       std::string server_port = heartbeat.server_port();
       google::protobuf::Timestamp timestamp = heartbeat.timestamp();
-      log(INFO, "ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
+      log(INFO, "server id=" + std::to_string(server_id) + ",ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
     };
     return Status::OK;
   }
