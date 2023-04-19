@@ -56,6 +56,17 @@ using csce438::Message;
 using csce438::Reply;
 using csce438::Request;
 using csce438::SNSService;
+
+#include "snsCoordinator.grpc.pb.h"
+using snsCoordinator::ClusterId;
+using snsCoordinator::FollowSyncs;
+using snsCoordinator::Heartbeat;
+using snsCoordinator::ServerInfo;
+using snsCoordinator::ServerType;
+using snsCoordinator::SNSCoordinator;
+using snsCoordinator::User;
+using snsCoordinator::Users;
+
 using google::protobuf::Duration;
 using google::protobuf::Timestamp;
 using grpc::Server;
@@ -266,9 +277,13 @@ class SNSServiceImpl final : public SNSService::Service
   }
 };
 
-void RunServer(std::string port_no)
+void RunServer(std::string ip, std::string coordPort, std::string port, int serverId, std::string type)
 {
-  std::string server_address = "0.0.0.0:" + port_no;
+  log(INFO, "coord ip: " + ip);
+  log(INFO, "coord port: " + coordPort);
+  log(INFO, "server id: " + std::to_string(serverId));
+  log(INFO, "type: " + type);
+  std::string server_address = "0.0.0.0:" + port;
   SNSServiceImpl service;
 
   ServerBuilder builder;
@@ -284,16 +299,36 @@ void RunServer(std::string port_no)
 int main(int argc, char **argv)
 {
 
+  // $./server -i <coordinatorIP> -c <coordinatorPort> -p <portNum> -d <idNum> -t <master/slave>
+  std::string ip = "0:0:0:0";
+  std::string coordPort = "9090";
   std::string port = "3010";
+  int serverId = 0;
+  std::string type = "master";
 
   int opt = 0;
-  while ((opt = getopt(argc, argv, "p:")) != -1)
+  while ((opt = getopt(argc, argv, "i:c:p:d:t:")) != -1)
   {
     switch (opt)
     {
+    case 'i':
+      ip = optarg;
+      break;
+    case 'c':
+      coordPort = optarg;
+      break;
     case 'p':
       port = optarg;
       break;
+    case 'd':
+      serverId = atoi(optarg);
+      break;
+    case 't':
+      if (strcmp(optarg, "slave") == 0 || strcmp(optarg, "master") == 0 || strcmp(optarg, "sync") == 0)
+      {
+        type = optarg;
+        break;
+      }
     default:
       std::cerr << "Invalid Command Line Argument\n";
     }
@@ -301,8 +336,9 @@ int main(int argc, char **argv)
 
   std::string log_file_name = std::string("server-") + port;
   google::InitGoogleLogging(log_file_name.c_str());
+  FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
   log(INFO, "Logging Initialized. Server starting...");
-  RunServer(port);
+  RunServer(ip, coordPort, port, serverId, type);
 
   return 0;
 }

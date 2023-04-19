@@ -77,7 +77,7 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
     Heartbeat heartbeat;
     while (stream->Read(&heartbeat))
     {
-      long long server_id = heartbeat.server_id();
+      int server_id = heartbeat.server_id();
       ServerType server_type = heartbeat.server_type();
       std::string server_ip = heartbeat.server_ip();
       std::string server_port = heartbeat.server_port();
