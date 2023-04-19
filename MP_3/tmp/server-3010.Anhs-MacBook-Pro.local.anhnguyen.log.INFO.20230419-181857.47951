@@ -1,0 +1,14 @@
+Log file created at: 2023/04/19 18:18:57
+Running on machine: Anhs-MacBook-Pro.local
+Running duration (h:mm:ss): 0:00:00
+Log line format: [IWEF]yyyymmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I20230419 18:18:57.400570 834216 tsd.cc:395] Logging Initialized. Server starting...
+I20230419 18:18:57.401405 834216 tsd.cc:337] coord ip: 0.0.0.0
+I20230419 18:18:57.401438 834216 tsd.cc:338] coord port: 9090
+I20230419 18:18:57.401463 834216 tsd.cc:339] server id: 0
+I20230419 18:18:57.401485 834216 tsd.cc:340] server port: 3010
+I20230419 18:18:57.401507 834216 tsd.cc:341] type: master
+I20230419 18:18:57.402599 834216 tsd.cc:354] Server listening on 0.0.0.0:3010
+I20230419 18:18:57.403636 834217 tsd.cc:301] Connect to coordinator 0.0.0.0:9090
+I20230419 18:18:57.407406 834217 tsd.cc:329] Signal 0
+I20230419 18:19:07.411885 834217 tsd.cc:329] Signal 1

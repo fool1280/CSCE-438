@@ -82,13 +82,26 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       std::string server_ip = heartbeat.server_ip();
       std::string server_port = heartbeat.server_port();
       google::protobuf::Timestamp timestamp = heartbeat.timestamp();
-
-      std::string debugString = "ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=";
-      log(INFO, debugString);
+      log(INFO, "ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
     };
     return Status::OK;
   }
 };
+
+void RunServer(std::string port)
+{
+  std::string server_address = "0.0.0.0:" + port;
+  SNSCoordinatorImpl service;
+
+  ServerBuilder builder;
+  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.RegisterService(&service);
+  std::unique_ptr<Server> server(builder.BuildAndStart());
+  std::cout << "Coordinator listening on " << server_address << std::endl;
+  log(INFO, "Coordinator listening on " + server_address);
+
+  server->Wait();
+}
 
 int main(int argc, char **argv)
 {
@@ -111,6 +124,6 @@ int main(int argc, char **argv)
   google::InitGoogleLogging(log_file_name.c_str());
   FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
   log(INFO, "Logging Initialized. Coordinator starting on port " + port);
-
+  RunServer(port);
   return 0;
 }

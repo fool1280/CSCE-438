@@ -71,6 +71,11 @@ using snsCoordinator::Users;
 
 using google::protobuf::Duration;
 using google::protobuf::Timestamp;
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::ClientReader;
+using grpc::ClientReaderWriter;
+using grpc::ClientWriter;
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -78,6 +83,13 @@ using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
+
+std::string coordIp = "0.0.0.0";
+std::string coordPort = "9090";
+std::string serverPort = "3010";
+int serverId = 0;
+std::string serverType = "master";
+std::unique_ptr<SNSCoordinator::Stub> stub_;
 
 struct Client
 {
@@ -282,20 +294,51 @@ class SNSServiceImpl final : public SNSService::Service
 void sendHeartbeat()
 {
   int i = 0;
+  std::string login_info = coordIp + ":" + coordPort;
+  stub_ = std::unique_ptr<SNSCoordinator::Stub>(SNSCoordinator::NewStub(
+      grpc::CreateChannel(
+          login_info, grpc::InsecureChannelCredentials())));
+  log(INFO, "Connect to coordinator " + login_info);
+
+  ClientContext context;
+
+  std::unique_ptr<ClientReaderWriter<Heartbeat, Heartbeat>> stream(
+      stub_->HandleHeartBeats(&context));
+
   while (true)
   {
+    Heartbeat heartbeat;
+    heartbeat.set_server_id(serverId);
+    if (serverType == "master")
+    {
+      heartbeat.set_server_type(ServerType::MASTER);
+    }
+    else if (serverType == "slave")
+    {
+      heartbeat.set_server_type(ServerType::SLAVE);
+    }
+    heartbeat.set_server_ip("localhost");
+    heartbeat.set_server_port(serverPort);
+    google::protobuf::Timestamp *timestamp = new google::protobuf::Timestamp();
+    timestamp->set_seconds(time(NULL));
+    timestamp->set_nanos(0);
+    heartbeat.set_allocated_timestamp(timestamp);
+
+    stream->Write(heartbeat);
+
     log(INFO, "Signal " + std::to_string(i));
     std::this_thread::sleep_for(std::chrono::seconds(10));
     i += 1;
   }
 }
 
-void RunServer(std::string ip, std::string coordPort, std::string port, int serverId, std::string type)
+void RunServer(std::string port)
 {
-  log(INFO, "coord ip: " + ip);
+  log(INFO, "coord ip: " + coordIp);
   log(INFO, "coord port: " + coordPort);
   log(INFO, "server id: " + std::to_string(serverId));
-  log(INFO, "type: " + type);
+  log(INFO, "server port: " + serverPort);
+  log(INFO, "type: " + serverType);
 
   std::thread signalThread(sendHeartbeat);
   signalThread.detach();
@@ -317,11 +360,6 @@ int main(int argc, char **argv)
 {
 
   // $./server -i <coordinatorIP> -c <coordinatorPort> -p <portNum> -d <idNum> -t <master/slave>
-  std::string ip = "0:0:0:0";
-  std::string coordPort = "9090";
-  std::string port = "3010";
-  int serverId = 0;
-  std::string type = "master";
 
   int opt = 0;
   while ((opt = getopt(argc, argv, "i:c:p:d:t:")) != -1)
@@ -329,21 +367,21 @@ int main(int argc, char **argv)
     switch (opt)
     {
     case 'i':
-      ip = optarg;
+      coordIp = optarg;
       break;
     case 'c':
       coordPort = optarg;
       break;
     case 'p':
-      port = optarg;
+      serverPort = optarg;
       break;
     case 'd':
       serverId = atoi(optarg);
       break;
     case 't':
-      if (strcmp(optarg, "slave") == 0 || strcmp(optarg, "master") == 0 || strcmp(optarg, "sync") == 0)
+      if (strcmp(optarg, "slave") == 0 || strcmp(optarg, "master") == 0)
       {
-        type = optarg;
+        serverType = optarg;
         break;
       }
     default:
@@ -351,11 +389,11 @@ int main(int argc, char **argv)
     }
   }
 
-  std::string log_file_name = std::string("server-") + port;
+  std::string log_file_name = std::string("server-") + serverPort;
   google::InitGoogleLogging(log_file_name.c_str());
   FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
   log(INFO, "Logging Initialized. Server starting...");
-  RunServer(ip, coordPort, port, serverId, type);
+  RunServer(serverPort);
 
   return 0;
 }
