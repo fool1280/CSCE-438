@@ -47,17 +47,51 @@ using grpc::Status;
 
 struct Cluster
 {
-  int port;
-  bool active;
+  int port = -1;
+  bool active = false;
+  google::protobuf::Timestamp timestamp;
 };
 
 std::vector<Cluster> master;
 std::vector<Cluster> slave;
-std::vector<Cluster> sync;
+std::vector<Cluster> followsync;
+std::map<ServerType, std::string> enumName;
+
+void initData()
+{
+  for (int i = 0; i < 3; i++)
+  {
+    master.push_back(Cluster());
+    slave.push_back(Cluster());
+    followsync.push_back(Cluster());
+    enumName[ServerType::MASTER] = "Master";
+    enumName[ServerType::SLAVE] = "Slave";
+    enumName[ServerType::SYNC] = "Sync";
+  }
+}
+class SNSCoordinatorImpl final : public SNSCoordinator::Service
+{
+  Status HandleHeartBeats(ServerContext *context, ServerReaderWriter<Heartbeat, Heartbeat> *stream) override
+  {
+    log(INFO, "Heartbeats Request");
+    Heartbeat heartbeat;
+    while (stream->Read(&heartbeat))
+    {
+      long long server_id = heartbeat.server_id();
+      ServerType server_type = heartbeat.server_type();
+      std::string server_ip = heartbeat.server_ip();
+      std::string server_port = heartbeat.server_port();
+      google::protobuf::Timestamp timestamp = heartbeat.timestamp();
+
+      std::string debugString = "ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=";
+      log(INFO, debugString);
+    };
+    return Status::OK;
+  }
+};
 
 int main(int argc, char **argv)
 {
-
   std::string port = "9090";
 
   int opt = 0;
@@ -69,7 +103,7 @@ int main(int argc, char **argv)
       port = optarg;
       break;
     default:
-      std::cerr << "Invalid Command Line Argument\n";
+      std::cerr << "Invalid port number for coordinator\n";
     }
   }
 
