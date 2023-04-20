@@ -47,7 +47,8 @@ using grpc::Status;
 
 struct Cluster
 {
-  int port = -1;
+  std::string ip;
+  std::string port;
   bool active = false;
   google::protobuf::Timestamp timestamp;
 };
@@ -72,6 +73,35 @@ void initData()
 
 void updateCoordinator(int server_id, ServerType server_type, std::string server_ip, std::string server_port, google::protobuf::Timestamp timestamp)
 {
+  int pos = (server_id % 3) + 1;
+  Cluster newCluster = {server_ip, server_port, true, timestamp};
+  if (enumName[server_type] == "Master")
+  {
+    Cluster cluster = master[pos];
+    if (cluster.active)
+    {
+      return;
+    }
+    master[pos] = newCluster;
+  }
+  else if (enumName[server_type] == "Slave")
+  {
+    Cluster cluster = slave[pos];
+    if (cluster.active)
+    {
+      return;
+    }
+    slave[pos] = newCluster;
+  }
+  else if (enumName[server_type] == "Sync")
+  {
+    Cluster cluster = followsync[pos];
+    if (cluster.active)
+    {
+      return;
+    }
+    followsync[pos] = newCluster;
+  }
 }
 
 class SNSCoordinatorImpl final : public SNSCoordinator::Service
