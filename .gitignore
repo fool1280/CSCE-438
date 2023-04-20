@@ -4,3 +4,13 @@ MP_1/build/**
 build/**
 MP_2/build/**
 build/**
+*.pb.h
+*.pb.o
+*.grpc.pb.cc
+*.pb.cc
+tmp/
+*.o
+coord
+followsync
+tsc
+tsd

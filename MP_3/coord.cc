@@ -59,7 +59,7 @@ std::map<ServerType, std::string> enumName;
 
 void initData()
 {
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 4; i++)
   {
     master.push_back(Cluster());
     slave.push_back(Cluster());
@@ -69,11 +69,15 @@ void initData()
     enumName[ServerType::SYNC] = "Sync";
   }
 }
+
+void updateCoordinator(int server_id, ServerType server_type, std::string server_ip, std::string server_port, google::protobuf::Timestamp timestamp)
+{
+}
+
 class SNSCoordinatorImpl final : public SNSCoordinator::Service
 {
   Status HandleHeartBeats(ServerContext *context, ServerReaderWriter<Heartbeat, Heartbeat> *stream) override
   {
-    log(INFO, "Heartbeats Request");
     Heartbeat heartbeat;
     while (stream->Read(&heartbeat))
     {
@@ -82,7 +86,9 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       std::string server_ip = heartbeat.server_ip();
       std::string server_port = heartbeat.server_port();
       google::protobuf::Timestamp timestamp = heartbeat.timestamp();
-      log(INFO, "server id=" + std::to_string(server_id) + ",ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
+      log(INFO, "Heartbeat received for server id=" + std::to_string(server_id) + ",ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
+
+      updateCoordinator(server_id, server_type, server_ip, server_port, timestamp);
     };
     return Status::OK;
   }
@@ -106,7 +112,7 @@ void RunServer(std::string port)
 int main(int argc, char **argv)
 {
   std::string port = "9090";
-
+  initData();
   int opt = 0;
   while ((opt = getopt(argc, argv, "p:")) != -1)
   {
