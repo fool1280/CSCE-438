@@ -47,10 +47,10 @@ using grpc::Status;
 
 struct Cluster
 {
-  std::string ip;
-  std::string port;
+  std::string ip = "";
+  std::string port = "";
   bool active = false;
-  google::protobuf::Timestamp timestamp;
+  std::string timestamp = "";
 };
 
 std::vector<Cluster> master;
@@ -60,26 +60,48 @@ std::map<ServerType, std::string> enumName;
 
 void initData()
 {
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 3; i++)
   {
-    master.push_back(Cluster());
-    slave.push_back(Cluster());
-    followsync.push_back(Cluster());
+    Cluster a = {"", "", false, ""};
+    Cluster b = {"", "", false, ""};
+    Cluster c = {"", "", false, ""};
+    master.push_back(a);
+    slave.push_back(b);
+    followsync.push_back(c);
     enumName[ServerType::MASTER] = "Master";
     enumName[ServerType::SLAVE] = "Slave";
     enumName[ServerType::SYNC] = "Sync";
   }
 }
 
-void updateCoordinator(int server_id, ServerType server_type, std::string server_ip, std::string server_port, google::protobuf::Timestamp timestamp)
+void printCoordinator()
 {
-  int pos = (server_id % 3) + 1;
+  for (int i = 0; i < 3; i++)
+  {
+    std::cout << "Index " + std::to_string(i) << std::endl;
+    std::cout << "Master: ip=" + master[i].ip + ", active=" + (master[i].active ? "true, " : "false, ") + master[i].timestamp << std::endl;
+    std::cout << "Slave: ip=" + slave[i].ip + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp << std::endl;
+    std::cout << "Follow sync: ip=" + followsync[i].ip + ", active=" + (followsync[i].active ? "true, " : "false, ") + followsync[i].timestamp << std::endl;
+  }
+  std::cout << std::endl;
+}
+
+void updateCoordinator(int server_id, ServerType server_type, std::string server_ip, std::string server_port, std::string timestamp)
+{
+  int pos = (server_id % 3);
   Cluster newCluster = {server_ip, server_port, true, timestamp};
   if (enumName[server_type] == "Master")
   {
     Cluster cluster = master[pos];
-    if (cluster.active)
+    google::protobuf::Timestamp lastTimestamp;
+    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
+    google::protobuf::Timestamp currentTimestamp;
+    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
+    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
+    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    if (cluster.active && difference <= 20000)
     {
+      master[pos].timestamp = timestamp;
       return;
     }
     master[pos] = newCluster;
@@ -87,8 +109,15 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
   else if (enumName[server_type] == "Slave")
   {
     Cluster cluster = slave[pos];
-    if (cluster.active)
+    google::protobuf::Timestamp lastTimestamp;
+    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
+    google::protobuf::Timestamp currentTimestamp;
+    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
+    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
+    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    if (cluster.active && difference <= 20000)
     {
+      slave[pos].timestamp = timestamp;
       return;
     }
     slave[pos] = newCluster;
@@ -96,8 +125,15 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
   else if (enumName[server_type] == "Sync")
   {
     Cluster cluster = followsync[pos];
-    if (cluster.active)
+    google::protobuf::Timestamp lastTimestamp;
+    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
+    google::protobuf::Timestamp currentTimestamp;
+    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
+    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
+    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    if (cluster.active && difference <= 20000)
     {
+      followsync[pos].timestamp = timestamp;
       return;
     }
     followsync[pos] = newCluster;
@@ -118,7 +154,8 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       google::protobuf::Timestamp timestamp = heartbeat.timestamp();
       log(INFO, "Heartbeat received for server id=" + std::to_string(server_id) + ",ip=" + server_ip + ",type=" + enumName[server_type] + ",port=" + server_port + ",timestamp=" + google::protobuf::util::TimeUtil::ToString(timestamp));
 
-      updateCoordinator(server_id, server_type, server_ip, server_port, timestamp);
+      updateCoordinator(server_id, server_type, server_ip, server_port, google::protobuf::util::TimeUtil::ToString(timestamp));
+      printCoordinator();
     };
     return Status::OK;
   }
