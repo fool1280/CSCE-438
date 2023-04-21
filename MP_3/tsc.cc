@@ -25,6 +25,16 @@ using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
 
+#include "snsCoordinator.grpc.pb.h"
+using snsCoordinator::ClusterId;
+using snsCoordinator::FollowSyncs;
+using snsCoordinator::Heartbeat;
+using snsCoordinator::ServerInfo;
+using snsCoordinator::ServerType;
+using snsCoordinator::SNSCoordinator;
+using snsCoordinator::User;
+using snsCoordinator::Users;
+
 Message MakeMessage(const std::string &username, const std::string &msg)
 {
     Message m;
@@ -59,6 +69,7 @@ private:
     // You can have an instance of the client stub
     // as a member variable.
     std::unique_ptr<SNSService::Stub> stub_;
+    std::unique_ptr<SNSCoordinator::Stub> coordstub_;
 
     IReply Login();
     IReply List();
@@ -71,9 +82,10 @@ int main(int argc, char **argv)
 {
 
     std::string hostname = "localhost";
-    std::string username = "default";
-    std::string port = "3010";
+    std::string username = "1";
+    std::string port = "9090";
 
+    // ./client -h <coordinatorIP> -p <coordinatorPort> -u <clientId>
     int opt = 0;
     while ((opt = getopt(argc, argv, "h:u:p:")) != -1)
     {
@@ -94,6 +106,7 @@ int main(int argc, char **argv)
     }
     std::string log_file_name = std::string("client-") + username;
     google::InitGoogleLogging(log_file_name.c_str());
+    FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
     log(INFO, "Logging Initialized. Client starting...");
     Client myc(hostname, username, port);
     // You MUST invoke "run_client" function to start business logic
@@ -113,7 +126,25 @@ int Client::connectTo()
     // a member variable in your own Client class.
     // Please refer to gRpc tutorial how to create a stub.
     // ------------------------------------------------------------
+    log(INFO, "coor ip=" + hostname + ", coord port=" + port + ", client_id=" + username);
     std::string login_info = hostname + ":" + port;
+
+    coordstub_ = std::unique_ptr<SNSCoordinator::Stub>(SNSCoordinator::NewStub(
+        grpc::CreateChannel(
+            login_info, grpc::InsecureChannelCredentials())));
+
+    User user;
+    ServerInfo serverInfo;
+    user.set_user_id(stoi(username));
+
+    ClientContext context;
+    Status status = coordstub_->GetServer(&context, user, &serverInfo);
+
+    if (status.ok())
+    {
+        log(INFO, "Received a response about server info from coor ip=" + hostname + ", coord port=" + port + ", client_id=" + username);
+    }
+
     stub_ = std::unique_ptr<SNSService::Stub>(SNSService::NewStub(
         grpc::CreateChannel(
             login_info, grpc::InsecureChannelCredentials())));

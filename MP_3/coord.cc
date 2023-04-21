@@ -51,6 +51,7 @@ struct Cluster
   std::string port = "";
   bool active = false;
   std::string timestamp = "";
+  std::string serverId = "";
 };
 
 std::vector<Cluster> master;
@@ -62,9 +63,9 @@ void initData()
 {
   for (int i = 0; i < 3; i++)
   {
-    Cluster a = {"", "", false, ""};
-    Cluster b = {"", "", false, ""};
-    Cluster c = {"", "", false, ""};
+    Cluster a = {"", "", false, "", ""};
+    Cluster b = {"", "", false, "", ""};
+    Cluster c = {"", "", false, "", ""};
     master.push_back(a);
     slave.push_back(b);
     followsync.push_back(c);
@@ -79,27 +80,33 @@ void printCoordinator()
   for (int i = 0; i < 3; i++)
   {
     std::cout << "Index " + std::to_string(i) << std::endl;
-    std::cout << "Master: ip=" + master[i].ip + ", active=" + (master[i].active ? "true, " : "false, ") + master[i].timestamp << std::endl;
-    std::cout << "Slave: ip=" + slave[i].ip + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp << std::endl;
-    std::cout << "Follow sync: ip=" + followsync[i].ip + ", active=" + (followsync[i].active ? "true, " : "false, ") + followsync[i].timestamp << std::endl;
+    std::cout << "Master: serverId=" + master[i].serverId + ", ip=" + master[i].ip + ", active=" + (master[i].active ? "true, " : "false, ") + master[i].timestamp << std::endl;
+    std::cout << "Slave: serverId=" + slave[i].serverId + ", ip=" + slave[i].ip + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp << std::endl;
+    std::cout << "Follow sync: serverId=" + followsync[i].serverId + ", ip=" + followsync[i].ip + ", active=" + (followsync[i].active ? "true, " : "false, ") + followsync[i].timestamp << std::endl;
   }
   std::cout << std::endl;
+}
+
+int64_t difference(Cluster cluster)
+{
+  google::protobuf::Timestamp lastTimestamp;
+  google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
+  google::protobuf::Timestamp *currentTimestamp = new google::protobuf::Timestamp();
+  currentTimestamp->set_seconds(time(NULL));
+  currentTimestamp->set_nanos(0);
+  int64_t difference = (currentTimestamp->seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp->nanos() - lastTimestamp.nanos()) / 1000000;
+  return difference;
 }
 
 void updateCoordinator(int server_id, ServerType server_type, std::string server_ip, std::string server_port, std::string timestamp)
 {
   int pos = (server_id % 3);
-  Cluster newCluster = {server_ip, server_port, true, timestamp};
+  Cluster newCluster = {server_ip, server_port, true, timestamp, std::to_string(server_id)};
   if (enumName[server_type] == "Master")
   {
     Cluster cluster = master[pos];
-    google::protobuf::Timestamp lastTimestamp;
-    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
-    google::protobuf::Timestamp currentTimestamp;
-    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
-    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
     // std::cout << "Diff: " << std::to_string(difference) << std::endl;
-    if (cluster.active && difference <= 20000)
+    if (cluster.active && difference(cluster) <= 20000)
     {
       master[pos].timestamp = timestamp;
       return;
@@ -109,13 +116,8 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
   else if (enumName[server_type] == "Slave")
   {
     Cluster cluster = slave[pos];
-    google::protobuf::Timestamp lastTimestamp;
-    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
-    google::protobuf::Timestamp currentTimestamp;
-    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
-    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
     // std::cout << "Diff: " << std::to_string(difference) << std::endl;
-    if (cluster.active && difference <= 20000)
+    if (cluster.active && difference(cluster) <= 20000)
     {
       slave[pos].timestamp = timestamp;
       return;
@@ -125,13 +127,8 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
   else if (enumName[server_type] == "Sync")
   {
     Cluster cluster = followsync[pos];
-    google::protobuf::Timestamp lastTimestamp;
-    google::protobuf::util::TimeUtil::FromString(cluster.timestamp, &lastTimestamp);
-    google::protobuf::Timestamp currentTimestamp;
-    google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
-    int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
     // std::cout << "Diff: " << std::to_string(difference) << std::endl;
-    if (cluster.active && difference <= 20000)
+    if (cluster.active && difference(cluster) <= 20000)
     {
       followsync[pos].timestamp = timestamp;
       return;
@@ -157,6 +154,35 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       updateCoordinator(server_id, server_type, server_ip, server_port, google::protobuf::util::TimeUtil::ToString(timestamp));
       printCoordinator();
     };
+    return Status::OK;
+  }
+
+  Status GetServer(ServerContext *context, const User *request, ServerInfo *reply) override
+  {
+    int user_id = request->user_id();
+    int pos = (user_id % 3);
+
+    if (difference(master[pos]) <= 20000) // master server still active
+    {
+      Cluster cluster = master[pos];
+      reply->set_server_ip(cluster.ip);
+      reply->set_port_num(cluster.port);
+      reply->set_server_id(stoi(cluster.serverId));
+      reply->set_server_type(ServerType::MASTER);
+      log(INFO, "client id=" + std::to_string(user_id) + " connect to master server id=" + cluster.serverId);
+      return Status::OK;
+    }
+
+    if (difference(slave[pos]) <= 20000) // master server still active
+    {
+      Cluster cluster = slave[pos];
+      reply->set_server_ip(cluster.ip);
+      reply->set_port_num(cluster.port);
+      reply->set_server_id(stoi(cluster.serverId));
+      reply->set_server_type(ServerType::SLAVE);
+      log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
+      return Status::OK;
+    }
     return Status::OK;
   }
 };
