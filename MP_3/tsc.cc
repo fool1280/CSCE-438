@@ -142,9 +142,12 @@ int Client::connectTo()
 
     if (status.ok())
     {
+        hostname = serverInfo.server_ip();
+        port = serverInfo.port_num();
         log(INFO, "Received a response about server info from coor ip=" + hostname + ", coord port=" + port + ", client_id=" + username);
     }
 
+    login_info = hostname + ":" + port;
     stub_ = std::unique_ptr<SNSService::Stub>(SNSService::NewStub(
         grpc::CreateChannel(
             login_info, grpc::InsecureChannelCredentials())));
