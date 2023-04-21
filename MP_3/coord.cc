@@ -173,16 +173,27 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       return Status::OK;
     }
 
-    if (difference(slave[pos]) <= 20000) // master server still active
-    {
-      Cluster cluster = slave[pos];
-      reply->set_server_ip(cluster.ip);
-      reply->set_port_num(cluster.port);
-      reply->set_server_id(stoi(cluster.serverId));
-      reply->set_server_type(ServerType::SLAVE);
-      log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
-      return Status::OK;
-    }
+    Cluster cluster = slave[pos];
+    reply->set_server_ip(cluster.ip);
+    reply->set_port_num(cluster.port);
+    reply->set_server_id(stoi(cluster.serverId));
+    reply->set_server_type(ServerType::SLAVE);
+    log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
+    master[pos] = slave[pos];
+    log(INFO, "Slave server id=" + cluster.serverId + " becomes master");
+    return Status::OK;
+  }
+
+  Status GetSlave(ServerContext *context, const ClusterId *request, ServerInfo *reply) override
+  {
+    int cluster_id = request->cluster();
+    int i = (cluster_id % 3);
+    Cluster cluster = slave[i];
+    reply->set_server_ip(cluster.ip);
+    reply->set_port_num(cluster.port);
+    reply->set_server_id(stoi(cluster.serverId));
+    reply->set_server_type(ServerType::SLAVE);
+    log(INFO, "Return slave server with serverId=" + slave[i].serverId + ", ip=" + slave[i].ip + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp);
     return Status::OK;
   }
 };
