@@ -7,11 +7,16 @@ To clear the directory (and remove .txt files):
    
     make clean
 
-To run the server on port 3010:
+To run the coordinator:
 
-    ./tsd -p 3010
+    ./coord -p <coordinatorPort>
+
+To run the server:
+
+    ./tsd -i <coordinatorIP> -c <coordinatorPort> -p <portNum> -d <idNum> -t <master/slave>
 
 To run the client  
 
-    ./tsc -h host_addr -p 3010 -u user1
+    ./tsc -h <coordinatorIP> -p <coordinatorPort> -u <clientId>
+
 
