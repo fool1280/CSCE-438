@@ -98,7 +98,7 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
     google::protobuf::Timestamp currentTimestamp;
     google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
     int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
-    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    // std::cout << "Diff: " << std::to_string(difference) << std::endl;
     if (cluster.active && difference <= 20000)
     {
       master[pos].timestamp = timestamp;
@@ -114,7 +114,7 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
     google::protobuf::Timestamp currentTimestamp;
     google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
     int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
-    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    // std::cout << "Diff: " << std::to_string(difference) << std::endl;
     if (cluster.active && difference <= 20000)
     {
       slave[pos].timestamp = timestamp;
@@ -130,7 +130,7 @@ void updateCoordinator(int server_id, ServerType server_type, std::string server
     google::protobuf::Timestamp currentTimestamp;
     google::protobuf::util::TimeUtil::FromString(timestamp, &currentTimestamp);
     int64_t difference = (currentTimestamp.seconds() - lastTimestamp.seconds()) * 1000 + (currentTimestamp.nanos() - lastTimestamp.nanos()) / 1000000;
-    std::cout << "Diff: " << std::to_string(difference) << std::endl;
+    // std::cout << "Diff: " << std::to_string(difference) << std::endl;
     if (cluster.active && difference <= 20000)
     {
       followsync[pos].timestamp = timestamp;
