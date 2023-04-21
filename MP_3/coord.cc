@@ -179,7 +179,6 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
     reply->set_server_id(stoi(cluster.serverId));
     reply->set_server_type(ServerType::SLAVE);
     log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
-    master[pos] = slave[pos];
     log(INFO, "Slave server id=" + cluster.serverId + " becomes master");
     return Status::OK;
   }
