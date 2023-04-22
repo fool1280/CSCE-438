@@ -80,9 +80,9 @@ void printCoordinator()
   for (int i = 0; i < 3; i++)
   {
     std::cout << "Index " + std::to_string(i) << std::endl;
-    std::cout << "Master: serverId=" + master[i].serverId + ", ip=" + master[i].ip + ", active=" + (master[i].active ? "true, " : "false, ") + master[i].timestamp << std::endl;
-    std::cout << "Slave: serverId=" + slave[i].serverId + ", ip=" + slave[i].ip + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp << std::endl;
-    std::cout << "Follow sync: serverId=" + followsync[i].serverId + ", ip=" + followsync[i].ip + ", active=" + (followsync[i].active ? "true, " : "false, ") + followsync[i].timestamp << std::endl;
+    std::cout << "Master: serverId=" + master[i].serverId + ", ip=" + master[i].ip + +", port=" + master[i].port + ", active=" + (master[i].active ? "true, " : "false, ") + master[i].timestamp << std::endl;
+    std::cout << "Slave: serverId=" + slave[i].serverId + ", ip=" + slave[i].ip + ", port=" + slave[i].port + ", active=" + (slave[i].active ? "true, " : "false, ") + slave[i].timestamp << std::endl;
+    std::cout << "Follow sync: serverId=" + followsync[i].serverId + ", ip=" + followsync[i].ip + ", port=" + followsync[i].port + ", active=" + (followsync[i].active ? "true, " : "false, ") + followsync[i].timestamp << std::endl;
   }
   std::cout << std::endl;
 }
@@ -161,6 +161,7 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
   {
     int user_id = request->user_id();
     int pos = (user_id % 3);
+    log(INFO, "Difference from master: " + std::to_string(difference(master[pos])));
 
     if (difference(master[pos]) <= 20000) // master server still active
     {
@@ -170,16 +171,19 @@ class SNSCoordinatorImpl final : public SNSCoordinator::Service
       reply->set_server_id(stoi(cluster.serverId));
       reply->set_server_type(ServerType::MASTER);
       log(INFO, "client id=" + std::to_string(user_id) + " connect to master server id=" + cluster.serverId);
-      return Status::OK;
     }
-
-    Cluster cluster = slave[pos];
-    reply->set_server_ip(cluster.ip);
-    reply->set_port_num(cluster.port);
-    reply->set_server_id(stoi(cluster.serverId));
-    reply->set_server_type(ServerType::SLAVE);
-    log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
-    log(INFO, "Slave server id=" + cluster.serverId + " becomes master");
+    else
+    {
+      std::cout << "Master is inactive" << std::endl;
+      Cluster cluster = slave[pos];
+      reply->set_server_ip(cluster.ip);
+      reply->set_port_num(cluster.port);
+      reply->set_server_id(stoi(cluster.serverId));
+      reply->set_server_type(ServerType::SLAVE);
+      log(INFO, "client id=" + std::to_string(user_id) + " connect to slave server id=" + cluster.serverId);
+      std::cout << "Slave: " << cluster.ip << ", port: " << cluster.port << std::endl;
+      log(INFO, "Slave server id=" + cluster.serverId + " becomes master");
+    }
     return Status::OK;
   }
 

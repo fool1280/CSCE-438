@@ -52,8 +52,10 @@ class Client : public IClient
 public:
     Client(const std::string &hname,
            const std::string &uname,
-           const std::string &p)
-        : hostname(hname), username(uname), port(p)
+           const std::string &p,
+           const std::string &cip,
+           const std::string &cp)
+        : hostname(hname), username(uname), port(p), coordHostname(cip), coordPort(cp)
     {
     }
 
@@ -66,6 +68,10 @@ private:
     std::string hostname;
     std::string username;
     std::string port;
+
+    std::string coordHostname;
+    std::string coordPort;
+
     // You can have an instance of the client stub
     // as a member variable.
     std::unique_ptr<SNSService::Stub> stub_;
@@ -85,6 +91,9 @@ int main(int argc, char **argv)
     std::string username = "1";
     std::string port = "9090";
 
+    std::string coordHostname = "localhost";
+    std::string coordPort = "9090";
+
     // ./client -h <coordinatorIP> -p <coordinatorPort> -u <clientId>
     int opt = 0;
     while ((opt = getopt(argc, argv, "h:u:p:")) != -1)
@@ -93,12 +102,14 @@ int main(int argc, char **argv)
         {
         case 'h':
             hostname = optarg;
+            coordHostname = optarg;
             break;
         case 'u':
             username = optarg;
             break;
         case 'p':
             port = optarg;
+            coordPort = optarg;
             break;
         default:
             std::cerr << "Invalid Command Line Argument\n";
@@ -108,7 +119,7 @@ int main(int argc, char **argv)
     google::InitGoogleLogging(log_file_name.c_str());
     FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
     log(INFO, "Logging Initialized. Client starting...");
-    Client myc(hostname, username, port);
+    Client myc(hostname, username, port, coordHostname, coordPort);
     // You MUST invoke "run_client" function to start business logic
     myc.run_client();
 
@@ -126,8 +137,8 @@ int Client::connectTo()
     // a member variable in your own Client class.
     // Please refer to gRpc tutorial how to create a stub.
     // ------------------------------------------------------------
-    log(INFO, "coor ip=" + hostname + ", coord port=" + port + ", client_id=" + username);
-    std::string login_info = hostname + ":" + port;
+    log(INFO, "coor ip=" + coordHostname + ", coord port=" + coordPort + ", client_id=" + username);
+    std::string login_info = coordHostname + ":" + coordPort;
 
     coordstub_ = std::unique_ptr<SNSCoordinator::Stub>(SNSCoordinator::NewStub(
         grpc::CreateChannel(
@@ -143,7 +154,9 @@ int Client::connectTo()
     if (status.ok())
     {
         hostname = serverInfo.server_ip();
+        server_hostname = serverInfo.server_ip();
         port = serverInfo.port_num();
+        server_port = serverInfo.port_num();
         log(INFO, "Received a response about server info from coor ip=" + hostname + ", coord port=" + port + ", client_id=" + username);
     }
 

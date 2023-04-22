@@ -58,7 +58,11 @@ followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(PROTOC) --cpp_out=. $<
 
 clean:
-	rm -f *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/*
+	rm -f -r *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+
+del:
+	rm -f -r /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+ 
 
 
 # The following is to test your system and ensure a smoother experience.
