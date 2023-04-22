@@ -7,8 +7,8 @@ import "google/protobuf/timestamp.proto";
 service SNSCoordinator {
 	rpc HandleHeartBeats (stream Heartbeat) returns (stream Heartbeat) {}
 	rpc GetFollowSyncsForUsers (Users) returns (FollowSyncs) {}
-	rpc GetServer (User) returns (Server) {}
-	rpc GetSlave (ClusterId) returns (Server) {} // For master to communicate with slave
+	rpc GetServer (User) returns (ServerInfo) {}
+	rpc GetSlave (ClusterId) returns (ServerInfo) {} // For master to communicate with slave
 }
 
 
@@ -27,7 +27,7 @@ message User {
 message ClusterId {
 	int32 cluster = 1;
 }
-message Server {
+message ServerInfo {
 	string server_ip = 1;
 	string port_num = 2;
 	int32 server_id = 3; // is equivalent to cluster ID

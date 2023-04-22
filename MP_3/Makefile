@@ -20,10 +20,10 @@ GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
 
 all: system-check tsc tsd coord followsync
 
-tsc: sns.pb.o sns.grpc.pb.o tsc.o 
+tsc: sns.pb.o sns.grpc.pb.o snsCoordinator.pb.o snsCoordinator.grpc.pb.o snsFollowSync.pb.o snsFollowSync.grpc.pb.o tsc.o 
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
-tsd: sns.pb.o sns.grpc.pb.o tsd.o
+tsd: sns.pb.o sns.grpc.pb.o snsCoordinator.pb.o snsCoordinator.grpc.pb.o snsFollowSync.pb.o snsFollowSync.grpc.pb.o tsd.o 
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
 coord: snsCoordinator.pb.o snsCoordinator.grpc.pb.o coord.o
@@ -41,7 +41,10 @@ followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
 
 clean:
-	rm -f *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync
+	rm -f -r *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+
+del:
+	rm -f -r /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
 
 
 # The following is to test your system and ensure a smoother experience.
