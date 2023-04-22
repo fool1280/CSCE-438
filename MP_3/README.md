@@ -1,4 +1,5 @@
 
+# Compile
 Compile the code using the provided makefile:
 
     make
@@ -6,6 +7,8 @@ Compile the code using the provided makefile:
 To clear the directory (and remove .txt files):
    
     make clean
+
+# Run manually
 
 To run the coordinator:
 
@@ -19,4 +22,16 @@ To run the client
 
     ./tsc -h <coordinatorIP> -p <coordinatorPort> -u <clientId>
 
+# Script
+Using script:
 
+    chmod +x startup.sh
+    chmod +x end.sh
+
+Run:
+
+    ./startup.sh
+
+Kill:
+
+    ./end.sh
