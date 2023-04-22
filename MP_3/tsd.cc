@@ -525,7 +525,7 @@ int main(int argc, char **argv)
 
   std::string log_file_name = std::string("server-") + serverPort;
   google::InitGoogleLogging(log_file_name.c_str());
-  FLAGS_log_dir = "/Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp";
+  FLAGS_log_dir = "/home/csce438/CSCE-438/MP_3/tmp";
   log(INFO, "Logging Initialized. Server starting...");
   RunServer(serverPort);
 

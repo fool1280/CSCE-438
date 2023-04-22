@@ -11,5 +11,5 @@ kill -9 $(pgrep -f './tsd -i 0:0:0:0 -c 9090 -p 3033 -d 2 -t slave' -n)
 kill -9 $(pgrep -f './tsd -i 0:0:0:0 -c 9090 -p 3034 -d 3 -t master' -n)
 kill -9 $(pgrep -f './tsd -i 0:0:0:0 -c 9090 -p 3035 -d 3 -t slave' -n) 
 
-rm -rf /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+rm -rf /home/csce438/CSCE-438/MP_3/tmp/ /home/csce438/CSCE-438/MP_3/master_*/ /home/csce438/CSCE-438/MP_3/slave_*/
 rm -f -r *.txt
