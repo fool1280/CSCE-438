@@ -261,26 +261,26 @@ IReply Client::processCommand(std::string &input)
     return ire;
 }
 
-void Client::processTimeline()
-{
-    Timeline(username);
-    // ------------------------------------------------------------
-    // In this function, you are supposed to get into timeline mode.
-    // You may need to call a service method to communicate with
-    // the server. Use getPostMessage/displayPostMessage functions
-    // for both getting and displaying messages in timeline mode.
-    // You should use them as you did in hw1.
-    // ------------------------------------------------------------
+// void Client::processTimeline()
+// {
+//     Timeline(username);
+//     // ------------------------------------------------------------
+//     // In this function, you are supposed to get into timeline mode.
+//     // You may need to call a service method to communicate with
+//     // the server. Use getPostMessage/displayPostMessage functions
+//     // for both getting and displaying messages in timeline mode.
+//     // You should use them as you did in hw1.
+//     // ------------------------------------------------------------
 
-    // ------------------------------------------------------------
-    // IMPORTANT NOTICE:
-    //
-    // Once a user enter to timeline mode , there is no way
-    // to command mode. You don't have to worry about this situation,
-    // and you can terminate the client program by pressing
-    // CTRL-C (SIGINT)
-    // ------------------------------------------------------------
-}
+//     // ------------------------------------------------------------
+//     // IMPORTANT NOTICE:
+//     //
+//     // Once a user enter to timeline mode , there is no way
+//     // to command mode. You don't have to worry about this situation,
+//     // and you can terminate the client program by pressing
+//     // CTRL-C (SIGINT)
+//     // ------------------------------------------------------------
+// }
 
 IReply Client::List()
 {
@@ -407,37 +407,88 @@ IReply Client::Login()
     return ire;
 }
 
-void Client::Timeline(const std::string &username)
+// void Client::Timeline(const std::string &username)
+// {
+//     ClientContext context;
+
+//     std::shared_ptr<ClientReaderWriter<Message, Message>> stream(
+//         stub_->Timeline(&context));
+
+//     // Thread used to read chat messages and send them to the server
+//     std::thread writer([username, stream]()
+//                        {
+//             std::string input = "Set Stream";
+//             Message m = MakeMessage(username, input);
+//             stream->Write(m);
+//             while (1) {
+//             input = getPostMessage();
+//             m = MakeMessage(username, input);
+//             stream->Write(m);
+//             }
+//             stream->WritesDone(); });
+
+//     std::thread reader([username, stream]()
+//                        {
+//             Message m;
+//             while(stream->Read(&m)){
+
+//             google::protobuf::Timestamp temptime = m.timestamp();
+//             std::time_t time = temptime.seconds();
+//             displayPostMessage(m.username(), m.msg(), time);
+//             } });
+
+//     // Wait for the threads to finish
+//     writer.join();
+//     reader.join();
+// }
+
+void writeThread(grpc::ClientReaderWriter<Message, Message> *clientRW, std::string username)
 {
+    Message msg;
+    while (true)
+    {
+        std::string message;
+        getline(std::cin, message);
+        msg.set_msg(message);
+        msg.set_username(username);
+        google::protobuf::Timestamp *timestamp = msg.mutable_timestamp();
+        timestamp->set_seconds(time(0));
+        clientRW->Write(msg);
+    };
+}
+
+void Client::processTimeline()
+{
+    // ------------------------------------------------------------
+    // In this function, you are supposed to get into timeline mode.
+    // You may need to call a service method to communicate with
+    // the server. Use getPostMessage/displayPostMessage functions
+    // for both getting and displaying messages in timeline mode.
+    // You should use them as you did in hw1.
+    // ------------------------------------------------------------
+
+    // ------------------------------------------------------------
+    // IMPORTANT NOTICE:
+    //
+    // Once a user enter to timeline mode , there is no way
+    // to command mode. You don't have to worry about this situation,
+    // and you can terminate the client program by pressing
+    // CTRL-C (SIGINT)
+    // ------------------------------------------------------------
     ClientContext context;
+    std::string sender = this->username;
+    context.AddMetadata("username", sender);
+    Request request = Request();
+    Reply response;
+    Status status;
+    auto clientRW = stub_->Timeline(&context);
+    std::thread writer(writeThread, clientRW.get(), sender);
 
-    std::shared_ptr<ClientReaderWriter<Message, Message>> stream(
-        stub_->Timeline(&context));
-
-    // Thread used to read chat messages and send them to the server
-    std::thread writer([username, stream]()
-                       {
-            std::string input = "Set Stream";
-            Message m = MakeMessage(username, input);
-            stream->Write(m);
-            while (1) {
-            input = getPostMessage();
-            m = MakeMessage(username, input);
-            stream->Write(m);
-            }
-            stream->WritesDone(); });
-
-    std::thread reader([username, stream]()
-                       {
-            Message m;
-            while(stream->Read(&m)){
-
-            google::protobuf::Timestamp temptime = m.timestamp();
-            std::time_t time = temptime.seconds();
-            displayPostMessage(m.username(), m.msg(), time);
-            } });
-
-    // Wait for the threads to finish
+    Message msg;
+    while (clientRW->Read(&msg))
+    {
+        time_t time = msg.timestamp().seconds();
+        displayPostMessage(msg.username(), msg.msg(), time);
+    }
     writer.join();
-    reader.join();
 }

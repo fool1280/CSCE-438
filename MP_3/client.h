@@ -169,7 +169,8 @@ void IClient::displayCommandReply(const std::string &comm, const IReply &reply) 
                 {
                     std::cout << room << ", ";
                 }
-                std::cout << "\nFollowers: ";
+                // return users that current user is following
+                std::cout << "\nFollowing users: ";
                 for (std::string room : reply.followers)
                 {
                     std::cout << room << ", ";

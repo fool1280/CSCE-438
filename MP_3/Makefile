@@ -1,22 +1,31 @@
 HOST_SYSTEM = $(shell uname | cut -f 1 -d_)
 SYSTEM ?= $(HOST_SYSTEM)
 CXX = g++
-
-CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
-CXXFLAGS += -std=c++11
+#CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
+CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/anhnguyen/grpc/third_party/protobuf/src -I/home/anhnguyen/grpc/include -I/home/anhnguyen/grpc/third_party/abseil-cpp -pthread
+#CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++17
+# ifeq ($(SYSTEM),Darwin)
+# LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
+#            -lgrpc++_reflection\
+#            -ldl -lglog
+# else
+# LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
+#            -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-needed\
+#            -ldl -lglog
+# endif
 ifeq ($(SYSTEM),Darwin)
-LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
+LDFLAGS += `pkg-config --libs protobuf grpc++ grpc`\
            -lgrpc++_reflection\
            -ldl -lglog
 else
-LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
+LDFLAGS += `pkg-config --libs protobuf grpc++ grpc`\
            -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-needed\
            -ldl -lglog
 endif
 PROTOC = protoc
 GRPC_CPP_PLUGIN = grpc_cpp_plugin
 GRPC_CPP_PLUGIN_PATH ?= `which $(GRPC_CPP_PLUGIN)`
-
 
 all: system-check tsc tsd coord followsync
 
@@ -32,19 +41,28 @@ coord: snsCoordinator.pb.o snsCoordinator.grpc.pb.o coord.o
 followsync: snsFollowSync.pb.o snsFollowSync.grpc.pb.o followsync.o
 	$(CXX) $^ $(LDFLAGS) -g -o $@
 
+# .PRECIOUS: %.grpc.pb.cc
+# %.grpc.pb.cc: %.proto
+# 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
+
+# .PRECIOUS: %.pb.cc
+# %.pb.cc: %.proto
+# 	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
+
 .PRECIOUS: %.grpc.pb.cc
 %.grpc.pb.cc: %.proto
-	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
+	$(PROTOC) --grpc_out=. --plugin=protoc-gen-grpc=$(GRPC_CPP_PLUGIN_PATH) $<
 
 .PRECIOUS: %.pb.cc
 %.pb.cc: %.proto
-	$(PROTOC) -I.:/home/csce438/grpc/third_party/protobuf/src --cpp_out=. $<
+	$(PROTOC) --cpp_out=. $<
 
 clean:
 	rm -f -r *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
 
 del:
 	rm -f -r /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+ 
 
 
 # The following is to test your system and ensure a smoother experience.
