@@ -61,7 +61,7 @@ clean:
 	rm -f -r *.txt *.o *.pb.cc *.pb.h tsc tsd coord followsync /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
 
 del:
-	rm -f -r /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
+	rm -f -r *.txt /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/tmp/* /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/master_*/ /Users/anhnguyen/Data/CSCE438/CSCE-438/MP_3/slave_*/
  
 
 
