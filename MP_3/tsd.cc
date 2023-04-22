@@ -95,6 +95,7 @@ std::string serverPort = "3010";
 int serverId = 0;
 std::string serverType = "master";
 std::unique_ptr<SNSCoordinator::Stub> stub_;
+std::unique_ptr<SNSService::Stub> slavestub_;
 
 using std::cout, std::cin, std::endl, std::string;
 using std::ofstream, std::ifstream, std::istringstream;
@@ -165,6 +166,56 @@ void readfile()
   }
 }
 
+void replicateToSlave(std::string command, const Request request)
+{
+  if (serverType == "slave")
+    return;
+  ClientContext context;
+  ClusterId clusterId;
+  clusterId.set_cluster(serverId);
+  ServerInfo serverInfo;
+
+  std::string login_info = coordIp + ":" + coordPort;
+  stub_ = std::unique_ptr<SNSCoordinator::Stub>(SNSCoordinator::NewStub(
+      grpc::CreateChannel(
+          login_info, grpc::InsecureChannelCredentials())));
+  log(INFO, "Connect to coordinator " + login_info);
+  Status status = stub_->GetSlave(&context, clusterId, &serverInfo);
+
+  if (status.ok())
+  {
+    std::string hostname = serverInfo.server_ip();
+    std::string port = serverInfo.port_num();
+    log(INFO, "Received a response about slave server info with ip=" + hostname + ", port=" + port);
+
+    std::string login_info = hostname + ":" + port;
+    slavestub_ = std::unique_ptr<SNSService::Stub>(SNSService::NewStub(
+        grpc::CreateChannel(
+            login_info, grpc::InsecureChannelCredentials())));
+
+    if (command == "follow")
+    {
+      ClientContext slaveContext;
+      Reply slaveReply;
+      Status slaveStatus = slavestub_->Follow(&slaveContext, request, &slaveReply);
+      if (slaveStatus.ok())
+      {
+        log(INFO, "Replicate follow to slave server info with ip=" + hostname + ", port=" + port);
+      }
+    }
+    if (command == "login")
+    {
+      ClientContext slaveContext;
+      Reply slaveReply;
+      Status slaveStatus = slavestub_->Login(&slaveContext, request, &slaveReply);
+      if (slaveStatus.ok())
+      {
+        log(INFO, "Replicate login to slave server info with ip=" + hostname + ", port=" + port);
+      }
+    }
+  }
+}
+
 class SNSServiceImpl final : public SNSService::Service
 {
   Status List(ServerContext *context, const Request *request, ListReply *reply) override
@@ -200,6 +251,7 @@ class SNSServiceImpl final : public SNSService::Service
     // users
     // ------------------------------------------------------------
     readfile();
+    replicateToSlave("follow", *request);
     string currentUser = request->username();
     string userToFollow = request->arguments().at(0);
     vector<string> currentFollow = following_users[currentUser];
@@ -263,6 +315,7 @@ class SNSServiceImpl final : public SNSService::Service
     // or already taken
     // ------------------------------------------------------------
     readfile();
+    replicateToSlave("login", *request);
     string username = request->username();
     auto it = all_users.find(username);
     if (it == all_users.end())
