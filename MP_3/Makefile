@@ -3,7 +3,7 @@ SYSTEM ?= $(HOST_SYSTEM)
 CXX = g++
 
 CPPFLAGS += -I$(MY_INSTALL_DIR)/include -I/home/csce438/grpc/third_party/protobuf/src -I/home/csce438/grpc/include -I/home/csce438/grpc/third_party/abseil-cpp -pthread
-CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++17
 ifeq ($(SYSTEM),Darwin)
 LDFLAGS += -L$(MY_INSTALL_DIR)/lib `pkg-config --libs protobuf grpc++ grpc`\
            -lgrpc++_reflection\
