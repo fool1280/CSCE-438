@@ -1,6 +1,6 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -14,22 +14,27 @@ import java.io.IOException;
 
 public class WordCount {
 
-    public static class ReadLineMapper extends Mapper<LongWritable, Text, LongWritable, Text> {
-
-        @Override
-        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            context.write(key, value);
+    public static class TweetMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
+        protected void map(Object key, Text value, Context context)
+                throws IOException, InterruptedException {
+            String line = value.toString();
+            if (line.startsWith("T")) {
+                String[] token = line.trim().split(" ");
+                String[] timestamp = token[1].split(":");
+                int hour = Integer.parseInt(timestamp[0]);
+                context.write(new IntWritable(hour), new IntWritable(1));
+            }
         }
     }
 
-    public static class PassThroughReducer extends Reducer<LongWritable, Text, LongWritable, Text> {
-
-        @Override
-        protected void reduce(LongWritable key, Iterable<Text> values, Context context)
+    public static class TweetReducer extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+        protected void reduce(IntWritable key, Iterable<IntWritable> values, Context context)
                 throws IOException, InterruptedException {
-            for (Text value : values) {
-                context.write(key, value);
+            int sum = 0;
+            for (IntWritable value : values) {
+                sum += value.get();
             }
+            context.write(key, new IntWritable(sum));
         }
     }
 
@@ -38,14 +43,14 @@ public class WordCount {
         Configuration conf = new Configuration();
         Job job = Job.getInstance(conf, "Read tweets line by line");
         job.setJarByClass(WordCount.class);
-        job.setMapperClass(ReadLineMapper.class);
-        job.setReducerClass(PassThroughReducer.class);
+        job.setMapperClass(TweetMapper.class);
+        job.setReducerClass(TweetReducer.class);
 
         job.setInputFormatClass(TextInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
-        job.setOutputKeyClass(LongWritable.class);
-        job.setOutputValueClass(Text.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(IntWritable.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
