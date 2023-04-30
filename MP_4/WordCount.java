@@ -15,14 +15,25 @@ import java.io.IOException;
 public class WordCount {
 
     public static class TweetMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
+        int hour;
+
         protected void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
             String line = value.toString();
             if (line.startsWith("T")) {
                 String[] token = line.trim().split(" ");
                 String[] timestamp = token[1].split(":");
-                int hour = Integer.parseInt(timestamp[0]);
-                context.write(new IntWritable(hour), new IntWritable(1));
+                hour = Integer.parseInt(timestamp[0]);
+                // for time of day most of the tweets
+                // context.write(new IntWritable(hour), new IntWritable(1));
+            } else if (line.startsWith("W")) {
+                String[] content = line.trim().split(" ");
+                for (String word : content) {
+                    if (word.equals("sleep")) {
+                        context.write(new IntWritable(hour), new IntWritable(1));
+                        break;
+                    }
+                }
             }
         }
     }
