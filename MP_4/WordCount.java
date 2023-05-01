@@ -29,7 +29,7 @@ public class WordCount {
             } else if (line.startsWith("W")) {
                 String[] content = line.trim().split(" ");
                 for (String word : content) {
-                    if (word.equals("sleep")) {
+                    if (word.toLowerCase().contains("sleep")) {
                         context.write(new IntWritable(hour), new IntWritable(1));
                         break;
                     }
