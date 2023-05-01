@@ -2,6 +2,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -14,10 +15,10 @@ import java.io.IOException;
 
 public class WordCount {
 
-    public static class TweetMapper extends Mapper<Object, Text, IntWritable, IntWritable> {
+    public static class TweetMapper extends Mapper<LongWritable, Text, IntWritable, IntWritable> {
         int hour;
 
-        protected void map(Object key, Text value, Context context)
+        protected void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
             String line = value.toString();
             if (line.startsWith("T")) {
